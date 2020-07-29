@@ -11,7 +11,9 @@ class Box {
         rotate(this.body.angle);
         noStroke();
         fill(255, 0, 0);
-        rect(-this.w/2, -this.h/2, this.w, this.h);
+        rect(-this.w/2, -this.h/2, this.w, this.h - 20);
+        fill(255, 200, 150);
+        rect(-this.w/2, -this.h/2 + this.h - 20, this.w, 20);
         pop();
     }
 }
