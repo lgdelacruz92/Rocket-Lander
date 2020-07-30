@@ -11,12 +11,25 @@ function setup() {
 
     Matter.World.add(engine.world, [body.body, ground]);
     Matter.Engine.run(engine);
+
 }
 
 function draw() {
     background(0);
-    noStroke();
     body.draw();
+    noStroke();
     fill(255, 255, 0);
     rect(ground.position.x - width / 2, ground.position.y - 50, width, 100);
+}
+
+function keyPressed() {
+    if (keyCode === UP_ARROW) {
+        body.up();
+    }
+    else if (keyCode === LEFT_ARROW) {
+        body.tiltLeft();
+    }
+    else if (keyCode === RIGHT_ARROW) {
+        body.tiltRight();
+    }
 }
