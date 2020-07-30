@@ -17,6 +17,7 @@ function setup() {
 function draw() {
     background(0);
     body.draw();
+    body.update();
     noStroke();
     fill(255, 255, 0);
     rect(ground.position.x - width / 2, ground.position.y - 50, width, 100);

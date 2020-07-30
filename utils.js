@@ -11,9 +11,16 @@ const getTopPoint = (rectangle, angle) => {
     return { x: rectangle.x + rotation.x, y: rectangle.y + rotation.y };
 }
 
+const getBottomPoint = (rectangle, angle) => {
+    const rectNormalizedTop = { x: 0, y: rectangle.h / 2 };
+    const rotation = rotatea(rectNormalizedTop, angle);
+    return { x: rectangle.x + rotation.x, y: rectangle.y + rotation.y };
+}
+
+
 const getVerticalVector = (rectangle, angle) => {
     const topPoint = getTopPoint(rectangle, angle);
-    return { x: topPoint.x - rectangle.x, y: topPoint.y - rectangle.y };
+    return createVector(topPoint.x - rectangle.x, topPoint.y - rectangle.y);
 }
 
 const getOrthogonalTopUnitVector = (rectangle, angle) => {
