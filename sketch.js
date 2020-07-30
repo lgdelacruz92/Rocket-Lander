@@ -20,9 +20,3 @@ function draw() {
     fill(255, 255, 0);
     rect(ground.position.x - width / 2, ground.position.y - 50, width, 100);
 }
-
-function keyPressed() {
-    if (keyCode === UP_ARROW) {
-        body.body.force = { x: 0, y: -0.05};
-    }
-}
