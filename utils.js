@@ -5,6 +5,10 @@ const rotatea = (a, angle) => {
     }
 }
 
+const mag = (a) => {
+    return Math.sqrt(a.x * a.x + a.y * a.y);
+}
+
 const getTopPoint = (rectangle, angle) => {
     const rectNormalizedTop = { x: 0, y: -rectangle.h / 2 };
     const rotation = rotatea(rectNormalizedTop, angle);
@@ -24,7 +28,6 @@ const getVerticalVector = (rectangle, angle) => {
 }
 
 const getOrthogonalTopUnitVector = (rectangle, angle) => {
-    console.log(rectangle, angle);
     const verticalVector = getVerticalVector(rectangle, angle);
     const vec = createVector(-verticalVector.y, verticalVector.x);
     return vec.div(vec.mag()).mult(-1);
