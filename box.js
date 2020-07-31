@@ -1,12 +1,17 @@
 class Box {
-    constructor(x, y, w, h) {
+    constructor(x, y, w, h, brain) {
         this.body = Matter.Bodies.rectangle(x, y, w, h);
         this.w = w;
         this.h = h;
         Matter.Body.setAngle(this.body, map(random(), 0, 1, -PI/2, PI/2));
-        this.brain = new neataptic.architect.Perceptron(3,5,3);
+        if (brain) {
+            this.brain = brain;
+        } else {
+            this.brain = new neataptic.architect.Perceptron(3,5,3);
+        }
 
         this.body.collisionFilter.group = -1;
+        this.fitness = 0;
     }
 
     _getRect() {
@@ -41,6 +46,13 @@ class Box {
     }
 
     update() {
+        const rectangle = this._getRect();
+        const verticalVector = getVerticalVector(rectangle, this.body.angle);
+        const dotProduct = dot(verticalVector, { x: 0, y: -1 }) / verticalVector.mag();
+        this.fitness += dotProduct;
+
+        this.dontGoOutOfBounds();
+
         const xVel = this.body.velocity.x / mag(this.body.velocity);
         const yVel = this.body.velocity.y / mag(this.body.velocity);
         const vel = createVector(xVel, yVel).mag();
@@ -50,6 +62,15 @@ class Box {
         this.up(output[0]);
         this.tiltLeft(output[1]);
         this.tiltRight(output[2]);
+    }
+
+    dontGoOutOfBounds() {
+        if (this.body.position.x < 0 || this.body.position.x > width) {
+            this.fitness -= 5;
+        }
+        if (this.body.position.y < 0 || this.body.position.y > height) {
+            this.fitness -= 5;
+        }
     }
 
     draw() {

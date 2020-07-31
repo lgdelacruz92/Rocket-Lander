@@ -5,6 +5,10 @@ const rotatea = (a, angle) => {
     }
 }
 
+const dot = (a, b) => {
+    return (a.x * b.x + a.y * b.y);
+}
+
 const mag = (a) => {
     return Math.sqrt(a.x * a.x + a.y * a.y);
 }
