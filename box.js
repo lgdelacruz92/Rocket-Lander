@@ -5,6 +5,8 @@ class Box {
         this.h = h;
         Matter.Body.setAngle(this.body, map(random(), 0, 1, -PI/2, PI/2));
         this.brain = new neataptic.architect.Perceptron(3,5,3);
+
+        this.body.collisionFilter.group = -1;
     }
 
     _getRect() {
