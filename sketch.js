@@ -1,10 +1,10 @@
-let engine;
-let rockets;
 let bestRocket;
-
-let rocketElites = [];
-
 let count;
+let engine;
+let generation;
+let rocketElites = [];
+let rockets;
+let maxScore;
 
 // * NUM_ROCKETS has to be a minimum of 100
 const NUM_ROCKETS = 100;
@@ -21,10 +21,14 @@ function setup() {
     Matter.Engine.run(engine);
 
     count = 0;
+    generation = 1;
+    maxScore = 0;
 }
 
 function draw() {
     background(0);
+    recordGeneration();
+    recordMaxScore();
 
     for (let i = 0; i < rockets.length; i++) {
         rockets[i].draw();
@@ -35,11 +39,24 @@ function draw() {
     fill(255, 255, 0);
     rect(ground.position.x - width / 2, ground.position.y - 50, width, 100);
     if (count >= 500) {
-        filterFittest();
+        const maxFit = filterFittest();
+        if (maxFit > maxScore) {
+            maxScore = maxFit;
+        }
         initNextGenRockets();
         count = 0;
     }
     count += 1;
+}
+
+function recordGeneration() {
+    const elem = document.querySelector('.reports .generation .number');
+    if (elem) elem.innerHTML = `${generation}`;
+}
+
+function recordMaxScore() {
+    const elem = document.querySelector('.reports .max-score .number');
+    if (elem) elem.innerHTML = `${maxScore}`;
 }
 
 function initRockets() {
@@ -55,7 +72,7 @@ function initNextGenRockets() {
     rockets = [];
     const nextGenBrains = makeNextGenBrains();
     let numNewRockets = 0;
-    while (numNewRockets < NUM_ROCKETS) {
+    while (numNewRockets < NUM_ROCKETS - nextGenBrains.length) {
         const randomNextGenBrain = nextGenBrains[parseInt(random(0, nextGenBrains.length))];
         randomNextGenBrain.mutate(neataptic.methods.mutation.MOD_BIAS);
         rockets.push(new Box(random(0, width), random(0, 300), 30, 100, randomNextGenBrain));
@@ -63,6 +80,14 @@ function initNextGenRockets() {
         numNewRockets += 1;
     }
     Matter.World.add(engine.world, [...rockets.map(b => b.body)]);
+
+    rocketElites.forEach(r => { 
+        Matter.Body.setPosition(r.body, { x: random(0, width), y: random(0, 300) });
+        Matter.Body.setVelocity(r.body, { x: 0, y: 0 });
+        Matter.Body.setAngle(r.body, map(random(), 0, 1, -PI/2, PI/2));
+        rockets.push(r) 
+    });
+    rocketElites = [];
 }
 
 function makeNextGenBrains() {
@@ -74,20 +99,13 @@ function makeNextGenBrains() {
             for (let j = 0; j < rocketElites.length; j++) {
                 const parent1 = rocketElites[i];
                 const parent2 = rocketElites[j];
-                if (parent1 !== parent2) {
+                if (i !== j) {
                     const childBrain = neataptic.Network.crossOver(parent1.brain, parent2.brain);
                     nextGenBrains.push(childBrain);
                 }
             }
         }
     }
-
-    // * Make sure to remove the rocket elites when they produce offspring
-    // * Make sure to also remove from world
-    for (let i = 0; i < rocketElites.length; i++) {
-        Matter.World.remove(engine.world, rocketElites[i]);
-    }
-    rocketElites = [];
     
     return nextGenBrains;
 }
@@ -113,6 +131,7 @@ function filterFittest() {
         }
     }
     rockets = [];
+    return maxFitn;
 }
 
 function maxFitness() {
