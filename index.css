@@ -1,0 +1,23 @@
+.container {
+    display: flex;
+}
+
+.container .reports {
+    padding-left: 50px;
+}
+
+.container .reports .rocket-infos {
+    padding-top: 50px;
+}
+
+.container .reports .rocket-infos .rocket-info {
+    display: flex;
+    align-items: center;
+}
+
+
+.container .reports .rocket-infos .rocket-info .color{
+    width: 20px;
+    height: 20px;
+    margin-right: 30px;
+}

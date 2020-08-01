@@ -19,7 +19,15 @@ class Box {
             this.startingFitness = 0;
         }
         this.dead = false;
-        this.color = createVector(0, 0);
+        this.color = createVector(random(0, 255), random(0, 255), random(0, 255));
+    }
+
+    setColor(color) {
+        this.color = color;
+    }
+
+    getFitness() {
+        this.fitness;
     }
 
     setFitness(fitness) {
@@ -73,15 +81,24 @@ class Box {
         this.dontGoOutOfBounds();
         this.punishHighVelocity();
 
-        const xVel = this.body.velocity.x / mag(this.body.velocity);
-        const yVel = this.body.velocity.y / mag(this.body.velocity);
-        const vel = createVector(xVel, yVel).mag();
-        const hNorm = this.body.position.y / height;
-        const output = this.brain.activate([vel, hNorm, this.body.position.x, this.body.position.y, this.body.angle / PI]);
+
+        const brainInput = this.getBrainInputs();
+        const output = this.brain.activate([brainInput.hNorm, brainInput.x, brainInput.y, brainInput.vel, brainInput.angle]);
 
         this.up(output[0]);
         this.tiltLeft(output[1]);
         this.tiltRight(output[2]);
+    }
+
+    getBrainInputs() {
+        const hNorm = clamp(this.body.position.y / height, 0, 1);
+        const x = clamp(this.body.position.x/width, 0, 1);
+        const y = clamp(this.body.position.y / height, 0, 1);
+
+        const clip = parseInt(Math.floor(this.body.angle * 100)) % 628;
+        const angle = map(clip, -628, 628, 0, 1);
+        const vel = map(mag(this.body.velocity), 0, 10000, 0, 1);
+        return { hNorm, x, y, angle, vel}
     }
 
     punishHighVelocity() {
@@ -119,7 +136,7 @@ class Box {
         translate(this.body.position.x, this.body.position.y);
         rotate(this.body.angle);
         noStroke();
-        fill(255, this.color.x, this.color.y);
+        fill(this.color.x, this.color.y, this.color.z);
         rect(-this.w / 2, -this.h / 2, this.w, this.h - 20);
         fill(255, 200, 150);
         rect(-this.w / 2, -this.h / 2 + this.h - 20, this.w, 20);

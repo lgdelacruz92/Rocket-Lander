@@ -11,7 +11,8 @@ let prevGenScore;
 const NUM_ROCKETS = 100;
 
 function setup() {
-    createCanvas(800, 800);
+    const canvas = createCanvas(800, 800);
+    canvas.parent('viewport');
     engine = Matter.Engine.create();
     initRockets();
 
@@ -48,6 +49,9 @@ function draw() {
             maxScore = maxFit;
         }
         initNextGenRockets(maxScore);
+        const colorFitnessData = collectColorFitnessData(rockets);
+        colorFitnessData.sort((a, b) => b.fitness - a.fitness);
+        showRocketFitnesses(colorFitnessData);
         count = 0;
         generation += 1;
     }
@@ -88,7 +92,7 @@ function initNextGenRockets(maxScore) {
         const randomNextGenBrain = nextGenBrains[parseInt(random(0, nextGenBrains.length))];
         randomNextGenBrain.mutate(neataptic.methods.mutation.MOD_BIAS);
         rockets.push(new Box(random(0, width), random(0, 300), 30, 100, randomNextGenBrain, maxScore * 0.5));
-        
+
         numNewRockets += 1;
     }
 
@@ -96,13 +100,13 @@ function initNextGenRockets(maxScore) {
         rocketElites.sort((a, b) => a.fitness - b.fitness);
         rocketElites.splice(4, rocketElites.length);
     }
-    
+
     rocketElites.forEach(r => {
         r.color.add(createVector(200, 200));
         Matter.Body.setPosition(r.body, { x: random(0, width), y: random(0, 300) });
         Matter.Body.setVelocity(r.body, { x: 0, y: 0 });
-        Matter.Body.setAngle(r.body, map(random(), 0, 1, -PI/2, PI/2));
-        rockets.push(r) 
+        Matter.Body.setAngle(r.body, map(random(), 0, 1, -PI / 2, PI / 2));
+        rockets.push(r)
     });
     Matter.World.add(engine.world, [...rockets.map(b => b.body)]);
 }
@@ -123,7 +127,7 @@ function makeNextGenBrains() {
             }
         }
     }
-    
+
     return nextGenBrains;
 }
 
@@ -164,4 +168,8 @@ function maxFitness() {
         }
     }
     return maxNum;
+}
+
+function showRocketInfos() {
+
 }
