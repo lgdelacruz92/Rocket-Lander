@@ -19,6 +19,7 @@ class Box {
             this.startingFitness = 0;
         }
         this.dead = false;
+
         this.color = createVector(random(0, 255), random(0, 255), random(0, 255));
     }
 
@@ -70,16 +71,16 @@ class Box {
         const rectangle = this._getRect();
         const verticalVector = getVerticalVector(rectangle, this.body.angle);
         const dotProduct = dot(verticalVector, { x: 0, y: -1 }) / verticalVector.mag();
+
         if (!this.dead) {
-            this.fitness += this.getReward(dotProduct) - this.getPunishment(mag(this.body.velocity));
+            this.fitness += this.getReward(dotProduct) - (mag(this.body.velocity) * 5);
             if (this.fitness < 0) {
                 this.fitness = this.startingFitness;
             }
         } else {
-            this.fitness = this.startingFitness;
+            this.fitness = 0;
         }
         this.dontGoOutOfBounds();
-        this.punishHighVelocity();
 
 
         const brainInput = this.getBrainInputs();
@@ -101,32 +102,18 @@ class Box {
         return { hNorm, x, y, angle, vel}
     }
 
-    punishHighVelocity() {
-        if (mag(this.body.velocity) > 1) {
-            this.fitness = this.startingFitness * 0.8;
-        }
-    }
-
     getReward(val) {
-        const reward = 100 * val * val;
+        const reward = 100 * val;
         return reward;
-    }
-
-    getPunishment(val) {
-        if (dot(this.body.velocity, { x: 0, y: 1}) > 0) {
-            return Math.abs(70);
-        } else {
-            return 0;
-        }
     }
 
     dontGoOutOfBounds() {
         if (this.body.position.x < 0 || this.body.position.x > width) {
-            this.fitness = this.startingFitness;
+            this.fitness = 0;
             this.dead = true;
         }
         if (this.body.position.y < 0 || this.body.position.y > height) {
-            this.fitness = this.startingFitness;
+            this.fitness = 0;
             this.dead = true;
         }
     }
