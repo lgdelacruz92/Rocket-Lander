@@ -36,3 +36,8 @@ const getOrthogonalTopUnitVector = (rectangle, angle) => {
     const vec = createVector(-verticalVector.y, verticalVector.x);
     return vec.div(vec.mag()).mult(-1);
 }
+
+const copy = (box) => {
+    const newRocket = new Box(box.body.position.x, box.body.position.y, box.w, box.h, box.brain, box.fitness);
+    return newRocket;
+}

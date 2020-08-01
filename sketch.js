@@ -2,9 +2,10 @@ let bestRocket;
 let count;
 let engine;
 let generation;
+let maxScore;
 let rocketElites = [];
 let rockets;
-let maxScore;
+let prevGenScore;
 
 // * NUM_ROCKETS has to be a minimum of 100
 const NUM_ROCKETS = 100;
@@ -22,13 +23,15 @@ function setup() {
 
     count = 0;
     generation = 1;
-    maxScore = 0;
+    maxScore = -Infinity;
+    prevGenScore = -Infinity;
 }
 
 function draw() {
     background(0);
     recordGeneration();
     recordMaxScore();
+    recordPrevGenScore();
 
     for (let i = 0; i < rockets.length; i++) {
         rockets[i].draw();
@@ -40,11 +43,13 @@ function draw() {
     rect(ground.position.x - width / 2, ground.position.y - 50, width, 100);
     if (count >= 500) {
         const maxFit = filterFittest();
+        prevGenScore = maxFit;
         if (maxFit > maxScore) {
             maxScore = maxFit;
         }
-        initNextGenRockets();
+        initNextGenRockets(maxScore);
         count = 0;
+        generation += 1;
     }
     count += 1;
 }
@@ -59,6 +64,12 @@ function recordMaxScore() {
     if (elem) elem.innerHTML = `${maxScore}`;
 }
 
+
+function recordPrevGenScore() {
+    const elem = document.querySelector('.reports .previous-gen-score .number');
+    if (elem) elem.innerHTML = `${prevGenScore}`;
+}
+
 function initRockets() {
     rockets = [];
 
@@ -68,26 +79,32 @@ function initRockets() {
     Matter.World.add(engine.world, [...rockets.map(b => b.body)]);
 }
 
-function initNextGenRockets() {
+function initNextGenRockets(maxScore) {
+    rockets.forEach(r => Matter.World.remove(engine.world, r.body));
     rockets = [];
     const nextGenBrains = makeNextGenBrains();
     let numNewRockets = 0;
-    while (numNewRockets < NUM_ROCKETS - nextGenBrains.length) {
+    while (numNewRockets < NUM_ROCKETS - rocketElites.length) {
         const randomNextGenBrain = nextGenBrains[parseInt(random(0, nextGenBrains.length))];
         randomNextGenBrain.mutate(neataptic.methods.mutation.MOD_BIAS);
-        rockets.push(new Box(random(0, width), random(0, 300), 30, 100, randomNextGenBrain));
+        rockets.push(new Box(random(0, width), random(0, 300), 30, 100, randomNextGenBrain, maxScore * 0.5));
         
         numNewRockets += 1;
     }
-    Matter.World.add(engine.world, [...rockets.map(b => b.body)]);
 
-    rocketElites.forEach(r => { 
+    if (rocketElites.length > 4) {
+        rocketElites.sort((a, b) => a.fitness - b.fitness);
+        rocketElites.splice(4, rocketElites.length);
+    }
+    
+    rocketElites.forEach(r => {
+        r.color.add(createVector(200, 200));
         Matter.Body.setPosition(r.body, { x: random(0, width), y: random(0, 300) });
         Matter.Body.setVelocity(r.body, { x: 0, y: 0 });
         Matter.Body.setAngle(r.body, map(random(), 0, 1, -PI/2, PI/2));
         rockets.push(r) 
     });
-    rocketElites = [];
+    Matter.World.add(engine.world, [...rockets.map(b => b.body)]);
 }
 
 function makeNextGenBrains() {
@@ -112,26 +129,31 @@ function makeNextGenBrains() {
 
 function filterFittest() {
     let maxFitn = maxFitness();
-    const interventionLimit = parseInt(0.9 * rockets.length);
-    for (let i = 0; i < rockets.length; i++) {
-        const normalizedFitness = map(rockets[i].fitness, -maxFitn, maxFitn, 0, 1);
-
-        // * If there are no elites making it. Intervene
-        if (i > interventionLimit && rocketElites.length <= 1) {
-            for (let j = i ; j < rockets.length; j++) {
-                rocketElites.push(rockets[i]);
+    if (maxFitn > -Infinity && maxFitn > prevGenScore) {
+        for (let i = 0; i < rockets.length; i++) {
+            const normalizedFitness = map(rockets[i].fitness, 0, maxFitn, 0, 1);
+            if (normalizedFitness > 0.97) {
+                rocketElites.push(copy(rockets[i]));
             }
-            break;
         }
 
-        if (normalizedFitness > 0.97) {
-            rocketElites.push(rockets[i]);
-        } else {
-            Matter.World.remove(engine.world, rockets[i].body);
+        // If none meets the bar randomly create 5 new population
+        if (rocketElites.length == 0) {
+            for (let i = 0; i < 4; i++) {
+                rocketElites.push(new Box(random(0, width), random(0, 300), 30, 100), null, maxFitn * 0.5);
+            }
+        } else if (rocketElites.length == 1) { // add another one
+            const randomRocket = copy(rockets[parseInt(random(0, rockets.length))]);
+            randomRocket.setFitness(maxFitn * 0.5);
+            rocketElites.push(randomRocket);
         }
+
+        return maxFitn;
+    } else {
+        return prevGenScore;
     }
-    rockets = [];
-    return maxFitn;
+
+
 }
 
 function maxFitness() {

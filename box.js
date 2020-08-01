@@ -1,5 +1,5 @@
 class Box {
-    constructor(x, y, w, h, brain) {
+    constructor(x, y, w, h, brain, fitness) {
         this.body = Matter.Bodies.rectangle(x, y, w, h);
         this.w = w;
         this.h = h;
@@ -7,11 +7,24 @@ class Box {
         if (brain) {
             this.brain = brain;
         } else {
-            this.brain = new neataptic.architect.Perceptron(3,5,3);
+            this.brain = new neataptic.architect.Perceptron(5,5,3);
         }
 
         this.body.collisionFilter.group = -1;
-        this.fitness = 0;
+        if (fitness) {
+            this.fitness= fitness;
+            this.startingFitness = fitness;
+        } else {
+            this.fitness = 0;
+            this.startingFitness = 0;
+        }
+        this.dead = false;
+        this.color = createVector(0, 0);
+    }
+
+    setFitness(fitness) {
+        this.fitness= fitness;
+        this.startingFitness = fitness; 
     }
 
     _getRect() {
@@ -49,27 +62,55 @@ class Box {
         const rectangle = this._getRect();
         const verticalVector = getVerticalVector(rectangle, this.body.angle);
         const dotProduct = dot(verticalVector, { x: 0, y: -1 }) / verticalVector.mag();
-        this.fitness += dotProduct;
-
+        if (!this.dead) {
+            this.fitness += this.getReward(dotProduct) - this.getPunishment(mag(this.body.velocity));
+            if (this.fitness < 0) {
+                this.fitness = this.startingFitness;
+            }
+        } else {
+            this.fitness = this.startingFitness;
+        }
         this.dontGoOutOfBounds();
+        this.punishHighVelocity();
 
         const xVel = this.body.velocity.x / mag(this.body.velocity);
         const yVel = this.body.velocity.y / mag(this.body.velocity);
         const vel = createVector(xVel, yVel).mag();
         const hNorm = this.body.position.y / height;
-        const output = this.brain.activate([vel, hNorm, this.body.angle / PI]);
+        const output = this.brain.activate([vel, hNorm, this.body.position.x, this.body.position.y, this.body.angle / PI]);
 
         this.up(output[0]);
         this.tiltLeft(output[1]);
         this.tiltRight(output[2]);
     }
 
+    punishHighVelocity() {
+        if (mag(this.body.velocity) > 1) {
+            this.fitness = this.startingFitness * 0.8;
+        }
+    }
+
+    getReward(val) {
+        const reward = 100 * val * val;
+        return reward;
+    }
+
+    getPunishment(val) {
+        if (dot(this.body.velocity, { x: 0, y: 1}) > 0) {
+            return Math.abs(70);
+        } else {
+            return 0;
+        }
+    }
+
     dontGoOutOfBounds() {
         if (this.body.position.x < 0 || this.body.position.x > width) {
-            this.fitness -= 5;
+            this.fitness = this.startingFitness;
+            this.dead = true;
         }
         if (this.body.position.y < 0 || this.body.position.y > height) {
-            this.fitness -= 5;
+            this.fitness = this.startingFitness;
+            this.dead = true;
         }
     }
 
@@ -78,7 +119,7 @@ class Box {
         translate(this.body.position.x, this.body.position.y);
         rotate(this.body.angle);
         noStroke();
-        fill(255, 0, 0);
+        fill(255, this.color.x, this.color.y);
         rect(-this.w / 2, -this.h / 2, this.w, this.h - 20);
         fill(255, 200, 150);
         rect(-this.w / 2, -this.h / 2 + this.h - 20, this.w, 20);
