@@ -3,8 +3,8 @@ class Box {
         this.body = Matter.Bodies.rectangle(x, y, w, h);
         this.w = w;
         this.h = h;
-        Matter.Body.setAngle(this.body, map(random(), 0, 1, -PI/2, PI/2));
-        if (brain) {
+        Matter.Body.setAngle(this.body, 0)
+        if (brain) {;
             this.brain = brain;
         } else {
             this.brain = new neataptic.architect.Perceptron(5,5,3);
@@ -57,38 +57,58 @@ class Box {
         const rectangle = this._getRect();
         const topPoint = getTopPoint(rectangle, this.body.angle);
         const orthogonalTopVector = getOrthogonalTopUnitVector(rectangle, this.body.angle);
-        Matter.Body.applyForce(this.body, topPoint, orthogonalTopVector.mult(scale/orthogonalTopVector.mag()).mult(0.001));
+        Matter.Body.applyForce(this.body, topPoint, orthogonalTopVector.mult(scale/orthogonalTopVector.mag()).mult(0.01));
     }
 
     tiltRight(scale) {
         const rectangle = this._getRect();
         const topPoint = getTopPoint(rectangle, this.body.angle);
         const orthogonalTopVector = getOrthogonalTopUnitVector(rectangle, this.body.angle);
-        Matter.Body.applyForce(this.body, topPoint, orthogonalTopVector.mult(scale/orthogonalTopVector.mag()).mult(-0.001));
+        Matter.Body.applyForce(this.body, topPoint, orthogonalTopVector.mult(scale/orthogonalTopVector.mag()).mult(-0.01));
     }
 
     update() {
-        const rectangle = this._getRect();
-        const verticalVector = getVerticalVector(rectangle, this.body.angle);
-        const dotProduct = dot(verticalVector, { x: 0, y: -1 }) / verticalVector.mag();
-
-        if (!this.dead) {
-            this.fitness += this.getReward(dotProduct) - (mag(this.body.velocity) * 5);
-            if (this.fitness < 0) {
-                this.fitness = this.startingFitness;
-            }
-        } else {
-            this.fitness = 0;
-        }
-        this.dontGoOutOfBounds();
-
-
+        this.fitness += this.calculateFitness();
         const brainInput = this.getBrainInputs();
         const output = this.brain.activate([brainInput.hNorm, brainInput.x, brainInput.y, brainInput.vel, brainInput.angle]);
-
+        
         this.up(output[0]);
         this.tiltLeft(output[1]);
         this.tiltRight(output[2]);
+    }
+
+    calculateFitness() {
+        const tiltScore = this.discourageTilting();
+        const outOfBounds = this.discourageOutOfBounds();
+        return  tiltScore + outOfBounds;
+    }
+
+    /*
+        Need a function that evaluates from 0 to 100
+        @x {number} normally the angle of the body
+        @return number between 0 to 100;
+    */
+    discourageTilting() {
+        if (this.body.angle > PI/2 || this.body.angle < PI/2) {
+            return -1;
+        }
+        const topVector = getVerticalVector(this._getRect(), this.body.angle);
+        topVector.setMag(1);
+        return topVector.dot(createVector(0, -1));
+    }
+
+    /*
+        Discourage going out of bounds
+        return 50 or 0
+    */
+    discourageOutOfBounds() {
+        if (this.body.position.x < 0 
+            || this.body.position.x > width
+            || this.body.position.y < 0
+            || this.body.position.y > height) {
+                return -1;
+            }
+        return 0;
     }
 
     getBrainInputs() {
@@ -100,22 +120,6 @@ class Box {
         const angle = map(clip, -628, 628, 0, 1);
         const vel = map(mag(this.body.velocity), 0, 10000, 0, 1);
         return { hNorm, x, y, angle, vel}
-    }
-
-    getReward(val) {
-        const reward = 100 * val;
-        return reward;
-    }
-
-    dontGoOutOfBounds() {
-        if (this.body.position.x < 0 || this.body.position.x > width) {
-            this.fitness = 0;
-            this.dead = true;
-        }
-        if (this.body.position.y < 0 || this.body.position.y > height) {
-            this.fitness = 0;
-            this.dead = true;
-        }
     }
 
     draw() {

@@ -38,7 +38,9 @@ const getOrthogonalTopUnitVector = (rectangle, angle) => {
 }
 
 const copy = (box) => {
-    const newRocket = new Box(box.body.position.x, box.body.position.y, box.w, box.h, box.brain, box.fitness);
+    const brainJson = box.brain.toJSON();
+    const brainCopy = neataptic.Network.fromJSON(brainJson);
+    const newRocket = new Box(box.body.position.x, box.body.position.y, box.w, box.h, brainCopy, box.fitness);
     return newRocket;
 }
 
