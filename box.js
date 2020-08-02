@@ -7,7 +7,7 @@ class Box {
         if (brain) {;
             this.brain = brain;
         } else {
-            this.brain = new neataptic.architect.Perceptron(5,5,3);
+            this.brain = new neataptic.architect.Perceptron(7,5,3);
         }
 
         this.body.collisionFilter.group = -1;
@@ -46,41 +46,56 @@ class Box {
     }
 
     up(scale) {
-        const rectangle = this._getRect();
-        const verticalVector = getVerticalVector(rectangle, this.body.angle);
-        verticalVector.div(verticalVector.mag()).mult(scale/verticalVector.mag()).mult(0.005);
-        const bottomPoint = getBottomPoint(rectangle, this.body.angle);
-        Matter.Body.applyForce(this.body, bottomPoint, verticalVector)
+        if (scale > 0.5) {
+            const rectangle = this._getRect();
+            const verticalVector = getVerticalVector(rectangle, this.body.angle);
+            verticalVector.setMag(0.05);
+            const bottomPoint = getBottomPoint(rectangle, this.body.angle);
+    
+            Matter.Body.applyForce(this.body, bottomPoint, verticalVector)
+        }
     }
 
     tiltLeft(scale) {
-        const rectangle = this._getRect();
-        const topPoint = getTopPoint(rectangle, this.body.angle);
-        const orthogonalTopVector = getOrthogonalTopUnitVector(rectangle, this.body.angle);
-        Matter.Body.applyForce(this.body, topPoint, orthogonalTopVector.mult(scale/orthogonalTopVector.mag()).mult(0.01));
+        if (scale > 0.5) {
+            const rectangle = this._getRect();
+            const topPoint = getTopPoint(rectangle, this.body.angle);
+            const orthogonalTopVector = getOrthogonalTopUnitVector(rectangle, this.body.angle);
+            orthogonalTopVector.setMag(0.005);
+            Matter.Body.applyForce(this.body, topPoint, orthogonalTopVector);
+        }
     }
 
     tiltRight(scale) {
-        const rectangle = this._getRect();
-        const topPoint = getTopPoint(rectangle, this.body.angle);
-        const orthogonalTopVector = getOrthogonalTopUnitVector(rectangle, this.body.angle);
-        Matter.Body.applyForce(this.body, topPoint, orthogonalTopVector.mult(scale/orthogonalTopVector.mag()).mult(-0.01));
+        if (scale > 0.5) {
+            const rectangle = this._getRect();
+            const topPoint = getTopPoint(rectangle, this.body.angle);
+            const orthogonalTopVector = getOrthogonalTopUnitVector(rectangle, this.body.angle);
+            orthogonalTopVector.setMag(-0.005);
+            Matter.Body.applyForce(this.body, topPoint, orthogonalTopVector);
+        }
     }
 
     update() {
         this.fitness += this.calculateFitness();
         const brainInput = this.getBrainInputs();
-        const output = this.brain.activate([brainInput.hNorm, brainInput.x, brainInput.y, brainInput.vel, brainInput.angle]);
+        const output = this.brain.activate(brainInput);
         
-        this.up(output[0]);
-        this.tiltLeft(output[1]);
-        this.tiltRight(output[2]);
+        this.lastOutput = output;
+        if (output[0] < output[1] && output[1] > output[2]) {
+            this.up(1);
+        } else if (output[1] < output[0] && output[0] > output[2]) {
+            this.tiltLeft(1);
+        } else if (output[0] < output[2] && output[2] > output[1]) {
+            this.tiltRight(1);
+        }
     }
 
     calculateFitness() {
         const tiltScore = this.discourageTilting();
         const outOfBounds = this.discourageOutOfBounds();
-        return  tiltScore + outOfBounds;
+        const highVel = this.discourageHighVelocity();
+        return  tiltScore + outOfBounds + highVel;
     }
 
     /*
@@ -89,12 +104,7 @@ class Box {
         @return number between 0 to 100;
     */
     discourageTilting() {
-        if (this.body.angle > PI/2 || this.body.angle < PI/2) {
-            return -1;
-        }
-        const topVector = getVerticalVector(this._getRect(), this.body.angle);
-        topVector.setMag(1);
-        return topVector.dot(createVector(0, -1));
+        return gaussian(this.body.angle);
     }
 
     /*
@@ -106,20 +116,29 @@ class Box {
             || this.body.position.x > width
             || this.body.position.y < 0
             || this.body.position.y > height) {
-                return -1;
+                return -5;
             }
+        return 0;
+    }
+    
+    discourageHighVelocity() {
+        if (mag(this.body.velocity) > 2) {
+            return -mag(this.body.velocity);
+        }
         return 0;
     }
 
     getBrainInputs() {
-        const hNorm = clamp(this.body.position.y / height, 0, 1);
-        const x = clamp(this.body.position.x/width, 0, 1);
+        const x = clamp(this.body.position.x / width, 0, 1);
         const y = clamp(this.body.position.y / height, 0, 1);
+        const groundLowerX = 0.25;
+        const groundUpperX = 0.75;
+        const floor = 0.75;
 
         const clip = parseInt(Math.floor(this.body.angle * 100)) % 628;
         const angle = map(clip, -628, 628, 0, 1);
         const vel = map(mag(this.body.velocity), 0, 10000, 0, 1);
-        return { hNorm, x, y, angle, vel}
+        return [x, y, angle, vel, groundLowerX, groundUpperX, floor];
     }
 
     draw() {
@@ -138,3 +157,9 @@ class Box {
         point(this.body.position.x, this.body.position.y);
     }
 }
+
+function gaussian(x) {
+    const val = -Math.pow(x, 2) + 20;
+    return val;
+}
+
