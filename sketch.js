@@ -11,7 +11,7 @@ let prevGenScore;
 let playGoat;
 
 // * NUM_ROCKETS has to be a minimum of 100
-const NUM_ROCKETS = 300;
+const NUM_ROCKETS = 100;
 
 // * Elitism number
 const ELITISM = 5;
@@ -56,6 +56,8 @@ function draw() {
         if (count >= 300) {
             // Reward landed 
             rewardRocketsThatLanded();
+            punishOutOfBounds();
+            punishNonUprightRockets();
 
             // Show scores
             showScores();
@@ -267,10 +269,41 @@ function filterFittest() {
     @return void
 */
 function rewardRocketsThatLanded() {
-    for (let i = 0; i < rockets; i++) {
+    for (let i = 0; i < rockets.length; i++) {
         const rocketBody = rockets[i].body;
         if (200 <= rocketBody.x && rocketBody.x <= 600 && 600 <= rocketBody.y && rocketBody.y <= 700) {
-            rockets[i].fitness += 500;
+            rockets[i].fitness += 5;
+        }
+    }
+}
+
+/*
+    Punish rockets that are out of bounds
+    @return void
+*/
+function punishOutOfBounds() {
+    for (let i = 0; i < rockets.length; i++) {
+        const rocketPos = rockets[i].body.position;
+        if (rocketPos.x > width
+            || rocketPos.x < 0
+            || rocketPos.y < 0
+            || rocketPos.y > height) {
+            rockets[i].fitness -= 10;
+        }
+    }
+}
+
+/*
+    Punish non upright rockets
+    @return void
+*/
+function punishNonUprightRockets() {
+    for (let i = 0; i < rockets.length; i++) {
+        const rocketBody = rockets[i].body;
+        if (rocketBody.angle > PI/2 || rocketBody.angle < -PI/2) {
+            rockets[i].fitness -= 2;
+        } else {
+            rockets[i].fitness += 3;
         }
     }
 }

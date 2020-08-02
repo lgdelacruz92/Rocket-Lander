@@ -93,9 +93,8 @@ class Box {
 
     calculateFitness() {
         const tiltScore = this.discourageTilting();
-        const outOfBounds = this.discourageOutOfBounds();
         const highVel = this.discourageHighVelocity();
-        return  tiltScore + outOfBounds + highVel;
+        return  tiltScore + highVel;
     }
 
     /*
@@ -104,28 +103,18 @@ class Box {
         @return number between 0 to 100;
     */
     discourageTilting() {
-        return gaussian(this.body.angle);
+        if (this.body.angle > PI/2 || this.body.angle < -PI/2) {
+            return -1;
+        } else {
+            return 1;
+        }
     }
 
-    /*
-        Discourage going out of bounds
-        return 50 or 0
-    */
-    discourageOutOfBounds() {
-        if (this.body.position.x < 0 
-            || this.body.position.x > width
-            || this.body.position.y < 0
-            || this.body.position.y > height) {
-                return -5;
-            }
-        return 0;
-    }
-    
     discourageHighVelocity() {
         if (mag(this.body.velocity) > 2) {
-            return -mag(this.body.velocity);
+            return -1;
         }
-        return 0;
+        return 1;
     }
 
     getBrainInputs() {
@@ -157,9 +146,3 @@ class Box {
         point(this.body.position.x, this.body.position.y);
     }
 }
-
-function gaussian(x) {
-    const val = -Math.pow(x, 2) + 20;
-    return val;
-}
-
