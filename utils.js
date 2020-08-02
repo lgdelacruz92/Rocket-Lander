@@ -13,6 +13,11 @@ const mag = (a) => {
     return Math.sqrt(a.x * a.x + a.y * a.y);
 }
 
+const unitize = (a) => {
+    const amag = mag(a);
+    return { x: a.x / amag, y: a.y /amag}
+}
+
 const getTopPoint = (rectangle, angle) => {
     const rectNormalizedTop = { x: 0, y: -rectangle.h / 2 };
     const rotation = rotatea(rectNormalizedTop, angle);

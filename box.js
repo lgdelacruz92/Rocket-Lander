@@ -19,7 +19,6 @@ class Box {
             this.startingFitness = 0;
         }
         this.dead = false;
-
         this.color = createVector(random(0, 255), random(0, 255), random(0, 255));
     }
 
@@ -53,6 +52,11 @@ class Box {
             const bottomPoint = getBottomPoint(rectangle, this.body.angle);
     
             Matter.Body.applyForce(this.body, bottomPoint, verticalVector)
+
+            if (mag(this.body.velocity) > 5) {
+                const unitVel = unitize(this.body.velocity);
+                Matter.Body.setVelocity(this.body, unitVel);
+            } 
         }
     }
 
