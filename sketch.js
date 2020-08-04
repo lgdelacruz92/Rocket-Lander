@@ -4,18 +4,25 @@ let fromGoatPlay;
 let engine;
 let generation;
 let goatRocket;
+let graphX;
+let rocketImg;
+let backgroundImg;
 let maxScore;
 let rocketElites = [];
 let rockets;
 let prevGenScore;
 let playGoat;
-let graphX;
 
 // * NUM_ROCKETS has to be a minimum of 100
 const NUM_ROCKETS = 100;
 
 // * Elitism number
 const ELITISM = 5;
+
+function preload() {
+    rocketImg = loadImage('rocket.png');
+    backgroundImg = loadImage('Background.png');
+}
 
 function setup() {
     const canvas = createCanvas(800, 800);
@@ -39,7 +46,7 @@ function setup() {
 }
 
 function draw() {
-    background(0);
+    image(backgroundImg, 0, 0);
 
     if (!playGoat) {
         if (fromGoatPlay) {
@@ -86,8 +93,9 @@ function draw() {
         }
         count += 1;
     }
-    noStroke();
-    fill(255, 255, 0);
+    stroke(0);
+    strokeWeight(2);
+    fill(200, 200, 200);
     rect(ground.position.x - width / 4, ground.position.y - 50, width / 2, 100);
 }
 

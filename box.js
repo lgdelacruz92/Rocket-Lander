@@ -133,10 +133,8 @@ class Box {
         translate(this.body.position.x, this.body.position.y);
         rotate(this.body.angle);
         noStroke();
-        fill(this.color.x, this.color.y, this.color.z);
-        rect(-this.w / 2, -this.h / 2, this.w, this.h - 20);
-        fill(255, 200, 150);
-        rect(-this.w / 2, -this.h / 2 + this.h - 20, this.w, 20);
+        imageMode(CENTER);
+        image(rocketImg, 0, 5   );
         pop();
 
         stroke(255);
