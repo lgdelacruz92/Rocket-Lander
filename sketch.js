@@ -1,5 +1,6 @@
 let bestRocket;
 let count;
+let evaluationCount;
 let fromGoatPlay;
 let engine;
 let generation;
@@ -544,6 +545,7 @@ function setup() {
     playGoat = false;
     fromGoatPlay = false;
     graphX = 0;
+    evaluationCount = 0;
 }
 
 function draw() {
@@ -565,24 +567,31 @@ function draw() {
         }
         if (count >= 500) {
 
-            // Show scores
-            showScores();
+            if (evaluationCount % 5 === 0 && evaluationCount !== 0) {
+                // Show scores
+                showScores();
 
-            // Record fittest
-            const maxFit = filterFittest();
-            prevGenScore = maxFit;
-            if (maxFit > maxScore) {
-                maxScore = maxFit;
-            }
+                // Record fittest
+                const maxFit = filterFittest();
+                prevGenScore = maxFit;
+                if (maxFit > maxScore) {
+                    maxScore = maxFit;
+                }
 
-            initNextGenRockets();
-    
-            const numBodies = Matter.Composite.allBodies(engine.world);
-            if (numBodies.length > 500) {
-                console.log('Memory leak', numBodies);
+                initNextGenRockets();
+        
+                const numBodies = Matter.Composite.allBodies(engine.world);
+                if (numBodies.length > 500) {
+                    console.log('Memory leak', numBodies);
+                }
+                generation += 1;
+                evaluationCount = 0;
+            } else {
+                // Randomize the position of the rockets again
+                randomizeRocketPosition();   
             }
+            evaluationCount += 1;
             count = 0;
-            generation += 1;
         }
         count += 1;
     }
@@ -599,6 +608,18 @@ function draw() {
     fill(200, 200, 200);
     rect(ground.position.x - width / 4, ground.position.y - 50, width / 2, 100);
     drawWater();
+}
+
+/*
+    Randomizes the position of the rockets all over again
+    @return void
+*/
+function randomizeRocketPosition() {
+    for (let i = 0; i < rockets.length; i++) {
+        Matter.Body.setPosition(rockets[i].body, {x: randomX(), y: random(0, 300)});
+        Matter.Body.setVelocity(rockets[i].body, {x: 0, y: 0});
+        Matter.Body.setAngle(rockets[i].body, 0);
+    }
 }
 
 /*

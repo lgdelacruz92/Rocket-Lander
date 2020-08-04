@@ -1,5 +1,5 @@
 class Box {
-    constructor(x, y, w, h, brain) {
+    constructor(x, y, w, h, brain, fitness) {
         this.body = Matter.Bodies.rectangle(x, y, w, h);
         this.w = w;
         this.h = h;
@@ -11,7 +11,11 @@ class Box {
         }
 
         this.body.collisionFilter.group = -1;
-        this.fitness = 0;
+        if (fitness) {
+            this.fitness = fitness;
+        } else {
+            this.fitness = 0;
+        }
         this.dead = false;
         this.color = createVector(random(0, 255), random(0, 255), random(0, 255));
     }
@@ -105,7 +109,7 @@ class Box {
 
     calculateFitness() {
         const distToTarget = dist(this.body.position, { x: 400, y: 650 });
-        this.fitness = createVector(width,height).mag()/distToTarget;
+        this.fitness += createVector(width,height).mag()/distToTarget;
     }
 
     _outOfBounds() {
