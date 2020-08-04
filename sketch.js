@@ -9,6 +9,7 @@ let rocketElites = [];
 let rockets;
 let prevGenScore;
 let playGoat;
+let graphX;
 
 // * NUM_ROCKETS has to be a minimum of 100
 const NUM_ROCKETS = 100;
@@ -34,6 +35,7 @@ function setup() {
     prevGenScore = -Infinity;
     playGoat = false;
     fromGoatPlay = false;
+    graphX = 0;
 }
 
 function draw() {
@@ -53,7 +55,7 @@ function draw() {
             rockets[i].draw();
             rockets[i].update();
         }
-        if (count >= 300) {
+        if (count >= 500) {
 
             // Show scores
             showScores();
@@ -65,8 +67,6 @@ function draw() {
                 maxScore = maxFit;
             }
 
-            // Retrain
-            saveGoat();
             initNextGenRockets();
     
             const numBodies = Matter.Composite.allBodies(engine.world);
@@ -123,7 +123,7 @@ function runPlayGoat() {
     // Play Goat
     Matter.World.add(engine.world, goatRocket.body);
     Matter.Body.setVelocity(goatRocket.body, { x: 0, y: 0 });
-    Matter.Body.setPosition(goatRocket.body, { x: random(0, width), y: random(0, 300)});
+    Matter.Body.setPosition(goatRocket.body, { x: 100, y: 100 });
     Matter.Body.setAngle(goatRocket.body, random(-PI/2, PI/2));
     playGoat = true;
 }
@@ -148,11 +148,13 @@ function breedGoat() {
     }
 }
 
-function saveGoat() {
+function saveGoat(topTen) {
     if (!goatRocket) {
-        goatRocket =  copy(rocketElites[0]);
-    } else if (rocketElites[0].fitness > goatRocket.fitness) {
-        goatRocket = copy(rocketElites[0]);
+        goatRocket =  copy(topTen[0]);
+        goatRocket.setFitness(topTen[0].fitness);
+    } else if (topTen[0].fitness > goatRocket.fitness) {
+        goatRocket = copy(topTen[0]);
+        goatRocket.setFitness(topTen[0].fitness);
     }
 }
 
@@ -176,9 +178,18 @@ function initRockets() {
     rockets = [];
 
     for (let i = 0; i < NUM_ROCKETS; i++) {
-        rockets.push(new Box(random(0, width), random(0, 300), 30, 100));
+
+        rockets.push(new Box(randomX(), random(0, 300), 30, 100));
     }
     Matter.World.add(engine.world, [...rockets.map(b => b.body)]);
+}
+
+function randomX() {
+    // const leftRandomPos = random(0, 200);
+    // const rightRandomPos = random(600, 800);
+    // if (random() > 0.5) return rightRandomPos;
+    // else return leftRandomPos;
+    return random(0, width);
 }
 
 function initNextGenRockets() {
@@ -191,14 +202,14 @@ function initNextGenRockets() {
         while (numNewRockets < NUM_ROCKETS - rocketElites.length) {
             const randomNextGenBrain = nextGenBrains[parseInt(random(0, nextGenBrains.length))];
             randomNextGenBrain.childBrain.mutate(neataptic.methods.mutation.MOD_WEIGHT);
-            const babyRocket = new Box(random(0, width), random(0, 300), 30, 100, randomNextGenBrain.childBrain);
+            const babyRocket = new Box(randomX(), random(0, 300), 30, 100, randomNextGenBrain.childBrain);
             babyRocket.setColor(randomNextGenBrain.parent.color);
             rockets.push(babyRocket);
             numNewRockets += 1;
         }
 
         rocketElites.forEach(r => {
-            Matter.Body.setPosition(r.body, { x: random(0, width), y: random(0, 300) });
+            Matter.Body.setPosition(r.body, { x: 100, y: 100 });
             Matter.Body.setVelocity(r.body, { x: 0, y: 0 });
             Matter.Body.setAngle(r.body, map(random(), 0, 1, -PI / 2, PI / 2));
             rockets.push(r)
@@ -221,7 +232,7 @@ function makeNextGenBrains() {
     const maxNextGen = 10;
     if (nextGen.length < maxNextGen && rocketElites.length > 0) {
         if (rocketElites.length === 1) {
-            const babyRocket = new Box(random(0, width), random(0, 300), 30, 100);
+            const babyRocket = new Box(randomX(), random(0, 300), 30, 100);
             rocketElites.push(babyRocket);
         }
 
@@ -252,11 +263,24 @@ function filterFittest() {
     Matter.World.remove(engine.world, [...rocketElites.map(r => r.body)]);
     rocketElites = [];
 
-    // take top 3
+
+    // Make sure to save the goat
     rockets.sort((a, b) => b.fitness - a.fitness);
+    saveGoat(rockets);
+
     for (let i = 0; i < ELITISM; i++) {
         rocketElites.push(copy(rockets[i]));
     }
+
+    let eliteAvgFitness = 0;
+    for (let i = 0; i < ELITISM; i++) {
+        eliteAvgFitness += rockets[i].fitness;
+    }
+    eliteAvgFitness /= ELITISM;
+    myChart.data.datasets[0].data.push({x: graphX, y: eliteAvgFitness});
+    myChart.update();
+    graphX += 1;
+    
     return rockets[0].fitness;
 }
 

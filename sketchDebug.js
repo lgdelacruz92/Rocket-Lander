@@ -21,8 +21,8 @@ function draw() {
 
     box.draw();
     box.calculateFitness();
-    box.checkOutOfBounds();
-    console.log(box.fitness, mag(box.body.velocity));
+    Matter.Body.setAngle(box.body, 0);
+    // console.log(box.fitness, mag(box.body.velocity));
     ground.draw();
 
     noStroke();
@@ -31,13 +31,21 @@ function draw() {
 
     fill(255, 100, 100, 70)
     rect(200, 300, 400, 300);
-    if (keyIsDown(UP_ARROW)) {
-        box.up(1);
+    if (box.body.position.y < 645) {
+        if (keyIsDown(UP_ARROW)) {
+            box.up(1);
+        }
+        if (keyIsDown(LEFT_ARROW)) {
+            box.left(1);
+        }
+        if (keyIsDown(RIGHT_ARROW)) {
+            box.right(1);
+        }
     }
-    if (keyIsDown(LEFT_ARROW)) {
-        box.tiltLeft(1);
-    } 
-    if (keyIsDown(RIGHT_ARROW)) {
-        box.tiltRight(1);
+
+    const mousePos = { x: mouseX, y: mouseY};
+    const distToTarget = dist(mousePos, { x: 400, y: 650});
+    if (distToTarget !== 0) {
+        console.log(createVector(width,height).mag()/distToTarget, mousePos, distToTarget);
     }
 }

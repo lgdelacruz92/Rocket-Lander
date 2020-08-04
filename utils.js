@@ -105,7 +105,7 @@ const makeRGBfromDataColor = color => {
 const showRocketFitnesses = (data) => {
     const rocketInfos = getRocketInfo();
     rocketInfos.innerHTML = '';
-    for (let i = 0; i < Math.min(data.length, 10); i++) {
+    for (let i = 0; i < Math.min(data.length, ELITISM); i++) {
         const rocketInfoEl = makeRocketInfoEl();
         rocketInfoEl.querySelector('.color')
             .setAttribute('style', makeRGBfromDataColor(data[i].color));
