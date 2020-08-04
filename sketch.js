@@ -97,6 +97,21 @@ function draw() {
     strokeWeight(2);
     fill(200, 200, 200);
     rect(ground.position.x - width / 4, ground.position.y - 50, width / 2, 100);
+    drawWater();
+}
+
+/*
+    Draw water
+    @return void
+*/
+function drawWater() {
+    stroke(52, 158, 200, 50);
+    strokeWeight(5);
+    for (let i = 0; i < width; i++) {
+        const yLoc = 20 * sin(i/200 + map(count, 0, 500, 0, 10)) + 750;
+        point(i, yLoc);
+        line(i, height, i, yLoc);
+    }
 }
 
 function showScores() {
