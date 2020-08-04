@@ -120,10 +120,11 @@ function runPlayGoat() {
     // Remove elites
     Matter.World.remove(engine.world, [...rocketElites.map(r => r.body)]);
     rocketElites = [];
+    
     // Play Goat
     Matter.World.add(engine.world, goatRocket.body);
     Matter.Body.setVelocity(goatRocket.body, { x: 0, y: 0 });
-    Matter.Body.setPosition(goatRocket.body, { x: 100, y: 100 });
+    Matter.Body.setPosition(goatRocket.body, { x: randomX(), y: random(0, 300) });
     Matter.Body.setAngle(goatRocket.body, random(-PI/2, PI/2));
     playGoat = true;
 }
@@ -143,7 +144,7 @@ function continueTraining() {
 function breedGoat() {
     for (let i = 0; i < NUM_ROCKETS - 1; i++) {
         const goatCopy = copy(goatRocket);
-        goatCopy.brain.mutate(neataptic.methods.mutation.MOD_WEIGHT);
+        goatCopy.brain.mutate(neataptic.methods.mutation.FFW);
         rockets.push(goatCopy);
     }
 }
@@ -185,11 +186,10 @@ function initRockets() {
 }
 
 function randomX() {
-    // const leftRandomPos = random(0, 200);
-    // const rightRandomPos = random(600, 800);
-    // if (random() > 0.5) return rightRandomPos;
-    // else return leftRandomPos;
-    return random(0, width);
+    const leftRandomPos = random(0, 350);
+    const rightRandomPos = random(450, 800);
+    if (random() > 0.5) return rightRandomPos;
+    else return leftRandomPos;
 }
 
 function initNextGenRockets() {
@@ -273,10 +273,10 @@ function filterFittest() {
     }
 
     let eliteAvgFitness = 0;
-    for (let i = 0; i < ELITISM; i++) {
+    for (let i = 0; i < rockets.length; i++) {
         eliteAvgFitness += rockets[i].fitness;
     }
-    eliteAvgFitness /= ELITISM;
+    eliteAvgFitness /= rockets.length;
     myChart.data.datasets[0].data.push({x: graphX, y: eliteAvgFitness});
     myChart.update();
     graphX += 1;
