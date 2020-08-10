@@ -140,9 +140,5 @@ class Box {
         imageMode(CENTER);
         image(rocketImg, 0, 5   );
         pop();
-
-        // stroke(255);
-        // strokeWeight(10);
-        // point(this.body.position.x, this.body.position.y);
     }
 }

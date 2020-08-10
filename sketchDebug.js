@@ -1,9 +1,13 @@
+let background;
+let count;
 let engine;
 let box;
 let rocketImg;
 
 function preload() {
     rocketImg = loadImage('rocket.png');
+    backgroundImg = loadImage('Background.png');
+
 }
 
 const GOAT_BRAIN = {
@@ -511,31 +515,24 @@ function setup() {
     canvas.parent('viewport');
 
     box = new Box(random(0,  width), random(0,300), 30, 100, neataptic.Network.fromJSON(GOAT_BRAIN));
-    ground = new Box(400, 750, 400, 100);
-    ground.body.collisionFilter.group = 0;
-    ground.body.isStatic = true;
+    ground = Matter.Bodies.rectangle(400, 650, 400, 100);
+    ground.isStatic = true;
     engine = Matter.Engine.create();
 
     Matter.Engine.run(engine);
     Matter.World.add(engine.world, box.body);
-    Matter.World.add(engine.world, ground.body);
+    Matter.World.add(engine.world, ground);
+
+    count = 0;
 }
 
 function draw() {
-    background(0);
+    image(backgroundImg, 0, 0);
 
     box.draw();
     box.update();
     Matter.Body.setAngle(box.body, 0);
-    // console.log(box.fitness, mag(box.body.velocity));
-    ground.draw();
 
-    noStroke();
-    fill(255, 0, 0, 70)
-    rect(200, 600, 400, 100);
-
-    fill(255, 100, 100, 70)
-    rect(200, 300, 400, 300);
     if (box.body.position.y < 645) {
         if (keyIsDown(UP_ARROW)) {
             box.up(1);
@@ -548,9 +545,26 @@ function draw() {
         }
     }
 
-    const mousePos = { x: mouseX, y: mouseY};
-    const distToTarget = dist(mousePos, { x: 400, y: 650});
-    if (distToTarget !== 0) {
-        console.log(createVector(width,height).mag()/distToTarget, mousePos, distToTarget);
-    }
+    stroke(0);
+    strokeWeight(2);
+    fill(200, 200, 200);
+    rect(300, ground.position.y + 50, 200, 100);
+    rect(ground.position.x - width / 4, ground.position.y - 50, width / 2, 100);
+    drawWater();
 }
+
+/*
+    Draw water
+    @return void
+*/
+function drawWater() {
+    stroke(52, 158, 200, 50);
+    strokeWeight(5);
+    for (let i = 0; i < width; i++) {
+        const yLoc = 20 * sin(i/200 + map(count, 0, 500, 0, 10)) + 750;
+        point(i, yLoc);
+        line(i, height, i, yLoc);
+    }
+    count += 1;
+}
+
