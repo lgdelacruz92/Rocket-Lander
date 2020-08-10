@@ -90,9 +90,9 @@ class Box {
             const output = this.brain.activate(brainInput);
     
             this.lastOutput = output;
-            this.up(output[0]);
-            this.left(output[1]);
-            this.right(output[2]);
+            this.up(map(output[0], -2, 2, 0, 1));
+            this.left(map(output[1], -2, 2, 0, 1));
+            this.right(map(output[2], -2, 2, 0, 1));
         }
         if (this.dead) {
             this.fitness = 0;
