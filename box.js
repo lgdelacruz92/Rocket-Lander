@@ -20,6 +20,26 @@ class Box {
         this.color = createVector(random(0, 255), random(0, 255), random(0, 255));
     }
 
+    /**
+     * Mutates the brain
+     */
+    mutate() {
+        if (random() > 0.5) {
+            this.brain.mutate(true);
+        } else {
+            this.brain.mutate(false, true);
+        }
+    }
+    
+    /**
+     * Resets the rocket
+     */
+    reset() {
+        Matter.Body.setPosition(this.body, { x: randomX(), y: random(0, 300) });
+        Matter.Body.setVelocity(this.body, { x: 0, y: 0});
+        Matter.Body.setAngle(this.body, 0);
+    }
+
     setColor(color) {
         this.color = color;
     }

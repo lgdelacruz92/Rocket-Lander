@@ -61,10 +61,18 @@ function draw() {
         // recordMaxScore();
         // recordPrevGenScore();
     
+    for (let i = 0; i < rockets.length; i++) {
+        rockets[i].draw();
+        rockets[i].update();
+    }
+    if (count >= 500) {
         for (let i = 0; i < rockets.length; i++) {
-            rockets[i].draw();
-            rockets[i].update();
+            rockets[i].mutate();
+            rockets[i].reset();
         }
+        count = 0;
+    }
+    count += 1;
     //     if (count >= 500) {
 
     //         if (evaluationCount % 5 === 0 && evaluationCount !== 0) {
