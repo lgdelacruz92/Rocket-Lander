@@ -15,7 +15,7 @@ let prevGenScore;
 let playGoat;
 
 // * NUM_ROCKETS has to be a minimum of 100
-const NUM_ROCKETS = 3;
+const NUM_ROCKETS = 1;
 
 // * Elitism number
 const ELITISM = 5;
@@ -51,58 +51,58 @@ function setup() {
 function draw() {
     image(backgroundImg, 0, 0);
 
-    if (!playGoat) {
-        if (fromGoatPlay) {
-            breedGoat();
-            fromGoatPlay = false;
-        }
+    // if (!playGoat) {
+        // if (fromGoatPlay) {
+        //     breedGoat();
+        //     fromGoatPlay = false;
+        // }
 
-        recordGeneration();
-        recordMaxScore();
-        recordPrevGenScore();
+        // recordGeneration();
+        // recordMaxScore();
+        // recordPrevGenScore();
     
         for (let i = 0; i < rockets.length; i++) {
             rockets[i].draw();
             rockets[i].update();
         }
-        if (count >= 500) {
+    //     if (count >= 500) {
 
-            if (evaluationCount % 5 === 0 && evaluationCount !== 0) {
-                // Show scores
-                showScores();
+    //         if (evaluationCount % 5 === 0 && evaluationCount !== 0) {
+    //             // Show scores
+    //             showScores();
 
-                // Record fittest
-                const maxFit = filterFittest();
-                prevGenScore = maxFit;
-                if (maxFit > maxScore) {
-                    maxScore = maxFit;
-                }
+    //             // Record fittest
+    //             const maxFit = filterFittest();
+    //             prevGenScore = maxFit;
+    //             if (maxFit > maxScore) {
+    //                 maxScore = maxFit;
+    //             }
 
-                initNextGenRockets();
+    //             initNextGenRockets();
         
-                const numBodies = Matter.Composite.allBodies(engine.world);
-                if (numBodies.length > 500) {
-                    console.log('Memory leak', numBodies);
-                }
-                generation += 1;
-                evaluationCount = 0;
-            } else {
-                // Randomize the position of the rockets again
-                randomizeRocketPosition();   
-            }
-            evaluationCount += 1;
-            count = 0;
-        }
-        count += 1;
-    }
-    else {
-        goatRocket.draw();
-        goatRocket.update();
-        if (count >= 300) {
-            count = 0;
-        }
-        count += 1;
-    }
+    //             const numBodies = Matter.Composite.allBodies(engine.world);
+    //             if (numBodies.length > 500) {
+    //                 console.log('Memory leak', numBodies);
+    //             }
+    //             generation += 1;
+    //             evaluationCount = 0;
+    //         } else {
+    //             // Randomize the position of the rockets again
+    //             randomizeRocketPosition();   
+    //         }
+    //         evaluationCount += 1;
+    //         count = 0;
+    //     }
+    //     count += 1;
+    // }
+    // else {
+    //     goatRocket.draw();
+    //     goatRocket.update();
+    //     if (count >= 300) {
+    //         count = 0;
+    //     }
+    //     count += 1;
+    // }
     drawGround();
     drawWater();
 }
@@ -319,7 +319,7 @@ function filterFittest() {
 
     // Make sure to save the goat
     rockets.sort((a, b) => b.fitness - a.fitness);
-    saveGoat(rockets);
+    // saveGoat(rockets);
 
     for (let i = 0; i < ELITISM; i++) {
         rocketElites.push(copy(rockets[i]));
