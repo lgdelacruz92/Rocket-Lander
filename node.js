@@ -18,5 +18,3 @@ class Node {
         return new Node(this.id);
     }
 }
-
-export default Node;
