@@ -15,7 +15,7 @@ let prevGenScore;
 let playGoat;
 
 // * NUM_ROCKETS has to be a minimum of 100
-const NUM_ROCKETS = 1;
+const NUM_ROCKETS = 3;
 
 // * Elitism number
 const ELITISM = 5;
@@ -66,8 +66,17 @@ function draw() {
         rockets[i].update();
     }
     if (count >= 500) {
+        let i1 = parseInt(Math.random() * rockets.length);
+        let i2 = parseInt(Math.random() * rockets.length);
+        while (i1 === i2) { 
+            i2 = parseInt(Math.random() * rockets.length);
+        }
+        const childBrain = rockets[i2].brain.crossOver(rockets[i2].brain);
+        const newRocket = new Box(randomX(), random(0, 300), 30, 100, childBrain);
+        newRocket.mutate();
+        Matter.World.add(engine.world, newRocket.body);
+        rockets.push(newRocket);
         for (let i = 0; i < rockets.length; i++) {
-            rockets[i].mutate();
             rockets[i].reset();
         }
         count = 0;
@@ -239,7 +248,7 @@ function initRockets() {
     rockets = [];
 
     for (let i = 0; i < NUM_ROCKETS; i++) {
-        const neat = new neatty.Neat(6, 3);
+        const neat = new Neat(6, 3);
         const newRocket = new Box(randomX(), random(0, 300), 30, 100, neat);
         rockets.push(newRocket);
     }

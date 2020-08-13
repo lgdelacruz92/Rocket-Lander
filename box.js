@@ -24,7 +24,7 @@ class Box {
      * Mutates the brain
      */
     mutate() {
-        if (random() > 0.5) {
+        if (Math.random() > 0.5) {
             this.brain.mutate(true);
         } else {
             this.brain.mutate(false, true);
@@ -38,6 +38,7 @@ class Box {
         Matter.Body.setPosition(this.body, { x: randomX(), y: random(0, 300) });
         Matter.Body.setVelocity(this.body, { x: 0, y: 0});
         Matter.Body.setAngle(this.body, 0);
+        this.dead = false;
     }
 
     setColor(color) {
@@ -52,51 +53,41 @@ class Box {
         this.fitness = fitness;
     }
 
-    reset() {
-        Matter.Body.setPosition(this.body, { x: random(0, width), y: random(0, 300) });
-        Matter.Body.setVelocity(this.body, { x: 0, y: 0 });
-    }
-
     up(scale) {
-        if (scale > 0.5) {
-            const verticalVector = createVector(0, -1);
-            verticalVector.setMag(0.005);
-            Matter.Body.applyForce(this.body, this.body.position, verticalVector);
+        const verticalVector = createVector(0, -1);
+        verticalVector.setMag(0.005 * scale);
+        Matter.Body.applyForce(this.body, this.body.position, verticalVector);
 
-            if (mag(this.body.velocity) > 1) {
-                const unitVel = unitize(this.body.velocity);
-                Matter.Body.setVelocity(this.body, unitVel);
-            }
+        if (mag(this.body.velocity) > 1) {
+            const unitVel = unitize(this.body.velocity);
+            Matter.Body.setVelocity(this.body, unitVel);
         }
     }
 
     left(scale) {
-        if (scale > 0.5) {
-            const forceVec = createVector(-1, 0);
-            forceVec.setMag(0.005);
-            Matter.Body.applyForce(this.body, this.body.position, forceVec);
+        const forceVec = createVector(-1, 0);
+        forceVec.setMag(0.005 * scale);
+        Matter.Body.applyForce(this.body, this.body.position, forceVec);
 
-            if (mag(this.body.velocity) > 1) {
-                const unitVel = unitize(this.body.velocity);
-                Matter.Body.setVelocity(this.body, unitVel);
-            }
-        } 
+        if (mag(this.body.velocity) > 1) {
+            const unitVel = unitize(this.body.velocity);
+            Matter.Body.setVelocity(this.body, unitVel);
+        }
     }
 
     right(scale) {
-        if (scale > 0.5) {
-            const forceVec = createVector(1, 0);
-            forceVec.setMag(0.005);
-            Matter.Body.applyForce(this.body, this.body.position, forceVec);
+        const forceVec = createVector(1, 0);
+        forceVec.setMag(0.005 * scale);
+        Matter.Body.applyForce(this.body, this.body.position, forceVec);
 
-            if (mag(this.body.velocity) > 1) {
-                const unitVel = unitize(this.body.velocity);
-                Matter.Body.setVelocity(this.body, unitVel);
-            }
-        } 
+        if (mag(this.body.velocity) > 1) {
+            const unitVel = unitize(this.body.velocity);
+            Matter.Body.setVelocity(this.body, unitVel);
+        }
     }
 
     update() {
+
         if (mag(this.body.velocity) > 3) {
             this.up(1);
         }
@@ -108,7 +99,11 @@ class Box {
             this.calculateFitness();
             const brainInput = this.getBrainInputs();
             const output = this.brain.activate(brainInput);
-    
+            for (let i = 0; i < this.brain.nodes.length; i++) {
+                if (isNaN(this.brain.nodes[i].value)) {
+                    console.log('The brain hit nan.', this.brain);
+                }
+            }
             this.lastOutput = output;
             this.up(map(output[0], -2, 2, 0, 1));
             this.left(map(output[1], -2, 2, 0, 1));
@@ -141,8 +136,8 @@ class Box {
     
 
     getBrainInputs() {
-        const x = clamp(this.body.position.x / width, 0, 1);
-        const y = clamp(this.body.position.y / height, 0, 1);
+        const x = this.body.position.x / width
+        const y = this.body.position.y / height
         const targetx = 0.5;
         const targety = 0.8125;
 

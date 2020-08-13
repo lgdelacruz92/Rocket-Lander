@@ -1,4 +1,3 @@
-
 const random = (lowerBound, upperBound) => {
     return Math.random() * upperBound + lowerBound;
 }
@@ -178,26 +177,102 @@ class Neat {
         if (!Array.isArray(inputs)) throw Error('Invalid type: inputs must be an array.');
         if (inputs.length !== this.inputNumber) throw Error(`Invalid number of inputs: this network requires ${this.inputNumber} inputs.`);
 
-        for (let i = 0; i < this.inputNumber; i++) {
-            this.nodes[i].value = inputs[i];
+        for (let i = 0; i < this.nodes.length; i++) {
+            this.nodes[i].value = 0;
         }
 
-        const outputConnections = [];
-        for (let i = 0; i < this.connections.length; i++) {
-            if (this.outputNodeIds[this.connections[i].outNode.id] === undefined) {
-                this.connections[i].activate();
-            } else {
-                outputConnections.push(this.connections[i]);
+        // Make stability map
+        const nodeStability = [];
+        for (let i = 0; i < this.nodes.length; i++) {
+            nodeStability.push(false);
+        }
+
+        // Label the inputs and stabilize
+        for (let i = 0; i < this.inputNumber; i++) {
+            this.nodes[i].value = inputs[i];
+            nodeStability[i] = true;
+        }
+
+        // If in connections already found once, no need to do it again.
+        const inConnectionsMap = {};
+
+        // Activate
+        while(!this._allStable(nodeStability)) {
+            for (let i = 0; i < this.nodes.length; i++) {
+                if (this.inputNodeIds[this.nodes[i].id] === undefined && !nodeStability[i]) {
+                    // Find in connections
+                    let connections = [];
+                    if (inConnectionsMap[this.nodes[i].id] !== undefined) {
+                        connections = inConnectionsMap[this.nodes[i].id];
+                    } else {
+                        connections = this._findOutConnections(this.nodes[i].id);
+                    }
+
+                    const inNodeSet = connections.map(cnn => {
+                        return cnn.inNode;
+                    });
+
+                    if (this._isSetOfNodesStable(inNodeSet, nodeStability)) {
+                        connections.forEach(cnn => { 
+                            cnn.activate(); 
+                        });
+                        nodeStability[i] = true;
+                    } else if (inNodeSet.length === 0) {
+                        connections.forEach(cnn => { 
+                            cnn.activate(); 
+                        });
+                        nodeStability[i] = true;
+                    }
+                }
             }
         }
-        for (let i = 0; i < outputConnections.length; i++) {
-            outputConnections[i].activate();
-        }
+
         const result = [];
         for (let i = this.inputNumber; i < this.inputNumber + this.outputNumber; i++) {
             result.push(this.nodes[i].value);
         }
         return result.map(r => this._sigmoid(r));
+    }
+
+    /**
+     * Finds out connections of a particular node
+     * @param {Node} node The node to find connections for
+     */
+    _findOutConnections(node) {
+        const connections = [];
+        for (let i = 0; i < this.connections.length; i++) {
+            if (node === this.connections[i].outNode.id) {
+                connections.push(this.connections[i]);
+            }
+        }
+        return connections;
+    }
+
+    /**
+     * True if all true false otherwise
+     * @param {Array} nodeStability Array of stability map for the nodes
+     */
+    _allStable(nodeStability) {
+        for (let i = 0; i < nodeStability.length; i++) {
+            if (nodeStability[i] === false) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * True if a set of nodes are all stable otherise false
+     * @param {Array} nodeSet The set of nodes to check
+     * @param {Array} nodeStability The mapping of stable nodes
+     */
+    _isSetOfNodesStable(nodeSet, nodeStability) {
+        for (let i = 0; i < nodeSet.length; i++) {
+            if (nodeStability[nodeSet[i].id] === false) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
