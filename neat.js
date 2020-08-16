@@ -31,6 +31,131 @@ class Neat {
     }
 
     /**
+     * Distance function for campatibility test with other Neats
+     * @param {Neat} otherNeat The other neat
+     */
+    dist(otherNeat) {
+        // Get excess
+        let connectionsMap = {};
+        if (this.connections.length > otherNeat.connections.length) {
+            connectionsMap = this._buildConnectionMatches(this.connections, otherNeat.connections);
+            const excess = this._countExcess(connectionsMap);
+            const disjoint = this._countDisjoints(connectionsMap, this.connections, otherNeat.connections);
+            const avgWeightDiff = this._getAvgWeightDifferences(connectionsMap);
+            return (excess / this.connections.length) + (disjoint / this.connections.length) + avgWeightDiff;
+        } else {
+            connectionsMap = this._buildConnectionMatches(otherNeat.connections, this.connections);
+            const excess = this._countExcess(connectionsMap);
+            const disjoint = this._countDisjoints(connectionsMap, otherNeat.connections, this.connections);
+            const avgWeightDiff = this._getAvgWeightDifferences(connectionsMap);
+            return (excess / otherNeat.connections.length) + (disjoint / otherNeat.connections.length) + avgWeightDiff;
+        }
+    }
+
+    /**
+     * Gets the average weight differences between matching genes
+     * @param {Object} connectionsMap The connection map
+     */
+    _getAvgWeightDifferences(connectionsMap) {
+
+        let avgWeightDiff = 0;
+        const keys = Object.keys(connectionsMap);
+        let countOfMatching = 0;
+        for (let i = 0; i < keys.length; i++) {
+            if (connectionsMap[keys[i]].length === 2) {
+                avgWeightDiff += (connectionsMap[keys[i]][0].weight - connectionsMap[keys[i]][1].weight) / 2;
+                countOfMatching +=1;
+            }
+        }
+        if (countOfMatching === 0) {
+            return 0;
+        } else {
+            return avgWeightDiff / countOfMatching;
+        }
+
+    }
+
+    /**
+     * Counts the number of disjoints in a connection
+     * @param {Object} connectionMap Connection map
+     * @param {Array} connectionsBigger Bigger array of connections
+     * @param {Array} connectionsSmaller Smaller array of connections
+     */
+    _countDisjoints(connectionMap, connectionsBigger, connectionsSmaller) {
+        if (connectionsSmaller.length > connectionsBigger) {
+            throw Error('Connectionsbigger is smaller than connections smaller. Please switch the input parameters.');
+        }
+
+        let disjointCount = 0;
+        for (let i = 0; i < connectionsSmaller.length; i++) {
+            const connectionIn = connectionsSmaller[i].in;
+            const connectionPair = connectionMap[connectionIn];
+            if (connectionPair.length !== 1 && connectionPair.length !== 2) {
+                throw Error('Something went wrong. Connection pairs should not be more than two.');
+            }
+            
+            if (connectionPair.length === 1) {
+                disjointCount += 1;
+            }
+        }
+        return disjointCount;
+    }
+
+    /**
+     * Counts the amount of excess in a connection map
+     * @param {Object} connectionsMap The connections map
+     */
+    _countExcess(connectionsMap) {
+        
+        // Iterate backwards on the keys
+        // Count amount of no pairs
+        let excess = 0;
+        const keys = Object.keys(connectionsMap);
+        let i = keys.length - 1;
+        while (i >= 0 && connectionsMap[keys[i]].length < 2) {
+            excess += 1;
+            i -= 1;
+        }
+
+        if (connectionsMap[keys[i]].length === 0) {
+            throw Error('This should not happen. Every key should have at least 1 item.')
+        }
+        return excess;
+    }
+
+    /**
+     * Builds connection match map
+     * @param {Array} connections1 The bigger connections array
+     * @param {Array} connections2 The smaller connections array
+     */
+    _buildConnectionMatches(connections1, connections2) {
+        if (connections2.length > connections1.length) {
+            throw Error('Connection2 is bigger than connection 1. Please reverse the input parameters.');
+        }
+
+        const connectionsMap = {};
+        for (let i = 0; i < connections1.length; i++) {
+            const connection1id = connections1[i].in;
+            connectionsMap[connection1id] = [connections1[i]];
+            for (let j = 0; j < connections2.length; j++) {
+                if (connection1id === connections2[j].in) {
+                    connectionsMap[connection1id].push(connections2[j]);
+                }
+            }
+        }
+
+        // Sanity validation of the map
+        const keys = Object.keys(connectionsMap);
+        for (let i = 0; i < keys.length; i++) {
+            if (connectionsMap[keys[i]].length > 2) {
+                throw Error('Something went wrong. You shouldnt have more than 2 in a pair.');
+            }
+        }
+
+        return connectionsMap;
+    }
+
+    /**
      * Exports the Neat into it's JSON representation
      * @return {Object}
      */
