@@ -1,4 +1,4 @@
-class Box {
+class Rocket {
     constructor(x, y, w, h, brain, fitness) {
         this.body = Matter.Bodies.rectangle(x, y, w, h);
         this.w = w;

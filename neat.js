@@ -2,6 +2,19 @@ const random = (lowerBound, upperBound) => {
     return Math.random() * upperBound + lowerBound;
 }
 
+const NEAT = {
+    /**
+     * Converts a 
+     * @param {Object} json The neat in json object
+     */
+    fromJSON: (json) => {
+        const neat = new Neat(json.inputNumber, json.outputNumber);
+        neat.replaceNodes(json.nodes);
+        neat.replaceConnections(json.connections);
+        return neat;
+    }
+}
+
 class Neat {
     constructor(inputNumber, outputNumber) {
         if (!inputNumber) throw Error('Value required: inputNumber.');
@@ -18,6 +31,67 @@ class Neat {
     }
 
     /**
+     * Exports the Neat into it's JSON representation
+     * @return {Object}
+     */
+    toJSON() {
+        return {
+            inputNumber: this.inputNumber,
+            outputNumber: this.outputNumber,
+            connections: this.connections.map(cnn => ({
+                innovationNumber: cnn.in,
+                weight: cnn.weight,
+                expressed: cnn.expressed,
+                inNode: cnn.inNode.id,
+                outNode: cnn.outNode.id
+            })),
+            nodes: this.nodes.map(n => ({
+                identificationNumber: n.id,
+                value: n.value
+            }))
+        }
+    }
+
+    /**
+     * Replace nodes
+     * @param {Array} nodesJSON The nodes json array
+     */
+    replaceNodes(nodesJSON) {
+        this.nodes = [];
+        for (let i = 0; i < nodesJSON.length; i++) {
+            this.nodes.push(new Node(nodesJSON[i].identificationNumber, nodesJSON[i].value));
+        }
+        this._updateNodeNumber();
+    }
+
+    /**
+     * Replaces connections from array of json formatten connections
+     * @param {Array} connectionsJSON The connections json array
+     */
+    replaceConnections(connectionsJSON) {
+        this.connections = [];
+        for (let i = 0; i < connectionsJSON.length; i++) {
+            const connection = new Connection(connectionsJSON[i].innovationNumber, connectionsJSON[i].weight, connectionsJSON[i].expressed);
+            const inNodeResult = this.nodes.find(n => n.id === connectionsJSON[i].inNode);
+            if (inNodeResult === undefined) {
+                throw Error(`Connection indexed ${i} is improperly formatted ${connectionsJSON[i].inNode} not found.`);
+            } else {
+                connection.inNode = inNodeResult;
+            }
+
+            const outNodeResult = this.nodes.find(n => n.id === connectionsJSON[i].outNode);
+            if (outNodeResult === undefined) {
+                throw Error(`Connection indexed ${i} is improperly formatted ${connectionsJSON[i].outNode} not found.`);
+            } else {
+                connection.outNode = outNodeResult;
+            }
+
+            this.connections.push(connection);
+        }
+        this._updateConnectionNumber();
+    }
+
+    /**
      * Returns a copy of itself
      * @return {Neat} new Neat copy
      */ 
@@ -27,6 +101,8 @@ class Neat {
         newNeat.outputNodeIds = JSON.parse(JSON.stringify(this.outputNodeIds));
         newNeat.connections = this.connections.map(cnn => cnn.copy());
         this._fillNodesFromConnections(newNeat);
+        this._updateNodeNumber();
+        this._updateConnectionNumber();
         return newNeat;
     }
 
@@ -92,6 +168,44 @@ class Neat {
     }
 
     /**
+     * True if there is a cycle in the connection false otherwise
+     * @return {boolean}
+     */
+    noCycle() {
+        if (this.connections.length === 0) throw Error('The connections are empty.');
+        if (this.nodes.length === 0) throw Error('The nodes are empty.');
+        // * DFS search on all input nodes
+        for (let i = 0; i < this.inputNumber; i++) {
+
+            const visited = {}
+            let currentNode = this.nodes[i];
+            let connections = this._findInConnections(currentNode.id);
+            
+            if (connections.length === 0) {
+                return false;
+            }
+
+            let connection = connections[0];
+
+            while (connection !== null && connection.outNode !== null) {
+                if (visited[currentNode.id] === true) {
+                    return false;
+                }
+                visited[currentNode.id] = true;
+
+                currentNode = connection.outNode;
+                connections = this._findInConnections(currentNode.id);
+                if (connections.length > 0) {
+                    connection = connections[0];
+                } else {
+                    connection = null;
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
      * Mutates the network
      *    - If no option is passed then it randomly selects a mutation method.
      * @param {bool} addNode Optional parameter to choose to mutate using addNode
@@ -124,16 +238,49 @@ class Neat {
             node2 = this.nodes[Math.max(index1, index2)];
         }
 
-        const newConnection = new Connection(this.connectionCurrentNumber, random(-2, 2), true);
+        const newConnection = new Connection(this.connectionCurrentNumber + 1, random(-2, 2), true);
         if (this._isHiddenLayerNode(node2) && this.outputNodeIds[node1.id]) {
             newConnection.inNode = node2;
             newConnection.outNode = node1;
-        } else {
+        }
+        else if (this.outputNodeIds[node2.id] && this._isHiddenLayerNode(node1)) {
+            newConnection.inNode = node1;
+            newConnection.outNode = node2;
+        } 
+        else if (this._isHiddenLayerNode(node2) && this._isHiddenLayerNode(node1)) {
+            if (node1.id < node2.id) {
+                newConnection.inNode = node1;
+                newConnection.outNode = node2;
+            } else {
+                newConnection.inNode = node2;
+                newConnection.outNode = node1;
+            }
+        }
+        else if (this.inputNodeIds[node1.id] && this.outputNodeIds[node2.id]) {
             newConnection.inNode = node1;
             newConnection.outNode = node2;
         }
+        else if (this.inputNodeIds[node2.id] && this.outputNodeIds[node1.id]) {
+            newConnection.inNode = node2;
+            newConnection.outNode = node1;
+        }
+        else if (this._isHiddenLayerNode(node2) && this.inputNodeIds[node1.id]) {
+            newConnection.inNode = node1;
+            newConnection.outNode = node2;
+        } else if (this._isHiddenLayerNode(node1) && this.inputNodeIds[node2.id]) {
+            newConnection.inNode = node2;
+            newConnection.outNode = node1;
+        }
+        else {
+            throw Error('This should not happen.');
+        }
+
         this.connections.push(newConnection);
-        this.connectionCurrentNumber += 1;
+        if (this.noCycle()) {
+            this._updateConnectionNumber();
+        } else {
+            this.connections.splice(this.connections.length - 1, 1);
+        }
     }
 
     /**
@@ -153,8 +300,8 @@ class Neat {
         const inNode = connection.inNode;
         const outNode = connection.outNode;
         const newNode = new Node(this.nodeCurrentNumber);
-        const newConnection1 = new Connection(this.connectionCurrentNumber, random(-2, 2), true);
-        const newConnection2 = new Connection(this.connectionCurrentNumber + 1, random(-2, 2), true);
+        const newConnection1 = new Connection(this.connectionCurrentNumber + 1, random(-2, 2), true);
+        const newConnection2 = new Connection(this.connectionCurrentNumber + 2, random(-2, 2), true);
         newConnection1.inNode = inNode;
         newConnection1.outNode = newNode;
         newConnection2.inNode = newNode;
@@ -164,8 +311,8 @@ class Neat {
         this.connections.push(newConnection1);
         this.connections.push(newConnection2);
 
-        this.nodeCurrentNumber += 1;
-        this.connectionCurrentNumber += 2;
+        this._updateNodeNumber();
+        this._updateConnectionNumber();
     }
 
     /**
@@ -235,13 +382,27 @@ class Neat {
     }
 
     /**
-     * Finds out connections of a particular node
-     * @param {Node} node The node to find connections for
+     * Finds in connections of a particular node
+     * @param {Node} nodeId The node id to find connections for
      */
-    _findOutConnections(node) {
+    _findInConnections(nodeId) {
         const connections = [];
         for (let i = 0; i < this.connections.length; i++) {
-            if (node === this.connections[i].outNode.id) {
+            if (nodeId === this.connections[i].inNode.id) {
+                connections.push(this.connections[i]);
+            }
+        }
+        return connections;
+    }
+
+    /**
+     * Finds out connections of a particular node
+     * @param {Node} nodeId The node id to find connections for
+     */
+    _findOutConnections(nodeId) {
+        const connections = [];
+        for (let i = 0; i < this.connections.length; i++) {
+            if (nodeId === this.connections[i].outNode.id) {
                 connections.push(this.connections[i]);
             }
         }
@@ -296,9 +457,12 @@ class Neat {
         
         // Make new child
         const newNeatChild = new Neat(this.inputNumber, this.outputNumber);
-        newNeatChild.connections = []; //
         this._produceChildConnections(newNeatChild, innovationNumbers, connectionPairs);
         this._fillNodesFromConnections(newNeatChild);
+        this._updateNodeNumber();
+        this._updateConnectionNumber();
+        newNeatChild._updateNodeNumber();
+        newNeatChild._updateConnectionNumber();
         
         return newNeatChild;
     }
@@ -323,6 +487,8 @@ class Neat {
      * @return void
      */
     _produceChildConnections(newNeatChild, innovationNumbers, nodePairs) {
+        newNeatChild.connections = []; //
+        newNeatChild.connectionCurrentNumber = 0;
         innovationNumbers.forEach(innoNumber => {
             const connectionPair = nodePairs[innoNumber];
             if (connectionPair.length === 1) {
@@ -347,5 +513,31 @@ class Neat {
         } else {
             nodePairs[cnn.in] = [cnn];
         }
+    }
+
+    /**
+     * Updates the node number based on node number max
+     */
+    _updateNodeNumber() {
+        let max = 0;
+        for (let i = 0; i < this.nodes.length; i++) {
+            if (this.nodes[i].id > max) {
+                max = this.nodes[i].id;
+            }
+        }
+        this.nodeCurrentNumber = max + 1;
+    }
+
+    /**
+     * Updates the connection number
+     */
+    _updateConnectionNumber() {
+        let max = 0;
+        for (let i = 0; i < this.connections.length; i++) {
+            if (this.connections[i].in > max) {
+                max = this.connections[i].in;
+            }
+        }
+        this.connectionCurrentNumber = max;
     }
 }
