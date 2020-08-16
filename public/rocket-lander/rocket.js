@@ -152,6 +152,8 @@ class Rocket {
         translate(this.body.position.x, this.body.position.y);
         rotate(this.body.angle);
         noStroke();
+        fill(this.color.x, this.color.y, this.color.z);
+        ellipse(0, 0, this.w - 16, this.h - 18);
         imageMode(CENTER);
         image(rocketImg, 0, 5   );
         pop();
