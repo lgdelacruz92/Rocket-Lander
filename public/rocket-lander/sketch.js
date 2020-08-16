@@ -11,8 +11,8 @@ const NUM_ROCKETS = 3;
 const ELITISM = 5;
 
 function preload() {
-    rocketImg = loadImage('rocket.png');
-    backgroundImg = loadImage('Background.png');
+    rocketImg = loadImage('../../assets/rocket.png');
+    backgroundImg = loadImage('../../assets/Background.png');
 }
 
 function setup() {
