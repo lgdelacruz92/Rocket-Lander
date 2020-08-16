@@ -32,9 +32,15 @@ function draw() {
     image(backgroundImg, 0, 0);
 
     for (let i = 0; i < rockets.length; i++) {
-        rockets[i].draw();
-        rockets[i].update();
-        if (rockets[i].outOfBounds()) {
+        try {
+            rockets[i].draw();
+            rockets[i].update();
+            if (rockets[i].outOfBounds()) {
+                removeRocket(i);
+            }
+        }
+        catch (err) {
+            console.log('Error in one frocket');
             removeRocket(i);
         }
     }
@@ -42,7 +48,7 @@ function draw() {
         // Speciation
         const speciesGroups = getSpeciesGroups(rockets);
         sortSpeciesGroups(speciesGroups);
-        kill50PercentPerSpecies(speciesGroups);
+        killPercentagePerSpecies(speciesGroups, 1 - 0.5);
         makeNewGenerationFromLast(speciesGroups);
         resetAllRockets();
         count = 0;
@@ -100,16 +106,16 @@ function sortSpeciesGroups(speciesGroups) {
  * Kills 50 % of each species group
  * @param {Array} speciesGroups Species groups
  */
-function kill50PercentPerSpecies(speciesGroups) {
+function killPercentagePerSpecies(speciesGroups, percentage) {
     for (let i = 0; i < speciesGroups.length; i++) {
-        const halfOfSpecies = parseInt(Math.floor(speciesGroups[i].length / 2));
+        const percentageOfSpecies = parseInt(Math.floor(speciesGroups[i].length * percentage));
         if (speciesGroups[i].length === 0) {
             throw Error('Something went wrong. Species group can not be zero.');
         }
-        for (let j = halfOfSpecies; j < speciesGroups[i].length; j++) {
+        for (let j = percentageOfSpecies; j < speciesGroups[i].length; j++) {
             removeRocket(getRocketIndex(speciesGroups[i][j].id));
         }
-        speciesGroups[i].splice(halfOfSpecies);
+        speciesGroups[i].splice(percentageOfSpecies);
     }
 }
 
@@ -205,11 +211,11 @@ function initRockets() {
 }
 
 function randomX() {
-    // const leftRandomPos = random(0, 350);
-    // const rightRandomPos = random(450, 800);
-    // if (random() > 0.5) return rightRandomPos;
-    // else return leftRandomPos;
-    return random(0, width);
+    const leftRandomPos = random(0, 300);
+    const rightRandomPos = random(500, 800);
+    if (Math.random() > 0.5) return rightRandomPos;
+    else return leftRandomPos;
+    // return random(0, width);
 }
 
 /**

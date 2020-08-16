@@ -491,7 +491,11 @@ class Neat {
         const inConnectionsMap = {};
 
         // Activate
+        let activationCount = 0;
         while (!this._allStable(nodeStability)) {
+            if (activationCount > 1000) {
+                throw Error('Taking to long to calculate. There might be a cycle in the Neat.');
+            }
             for (let i = 0; i < this.nodes.length; i++) {
                 if (this.inputNodeIds[this.nodes[i].id] === undefined && !nodeStability[i]) {
                     // Find in connections
@@ -518,6 +522,7 @@ class Neat {
                         nodeStability[i] = true;
                     }
                 }
+                activationCount += 1;
             }
         }
 
