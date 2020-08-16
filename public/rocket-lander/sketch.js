@@ -5,10 +5,7 @@ let backgroundImg;
 let rockets;
 
 // * NUM_ROCKETS has to be a minimum of 100
-const NUM_ROCKETS = 3;
-
-// * Elitism number
-const ELITISM = 5;
+const NUM_ROCKETS = 100;
 
 function preload() {
     rocketImg = loadImage('../../assets/rocket.png');
@@ -29,13 +26,6 @@ function setup() {
     Matter.Engine.run(engine);
 
     count = 0;
-    generation = 1;
-    maxScore = -Infinity;
-    prevGenScore = -Infinity;
-    playGoat = false;
-    fromGoatPlay = false;
-    graphX = 0;
-    evaluationCount = 0;
 }
 
 function draw() {
@@ -44,27 +34,136 @@ function draw() {
     for (let i = 0; i < rockets.length; i++) {
         rockets[i].draw();
         rockets[i].update();
+        if (rockets[i].outOfBounds()) {
+            removeRocket(i);
+        }
     }
     if (count >= 500) {
-        let i1 = parseInt(Math.random() * rockets.length);
-        let i2 = parseInt(Math.random() * rockets.length);
-        while (i1 === i2) { 
-            i2 = parseInt(Math.random() * rockets.length);
-        }
-        const childBrain = rockets[i2].brain.crossOver(rockets[i2].brain);
-        const newRocket = new Rocket(randomX(), random(0, 300), 30, 100, childBrain);
-        newRocket.mutate();
-        Matter.World.add(engine.world, newRocket.body);
-        rockets.push(newRocket);
-        for (let i = 0; i < rockets.length; i++) {
-            rockets[i].reset();
-        }
+        // Speciation
+        const speciesGroups = getSpeciesGroups(rockets);
+        sortSpeciesGroups(speciesGroups);
+        kill50PercentPerSpecies(speciesGroups);
+        makeNewGenerationFromLast(speciesGroups);
+        resetAllRockets();
         count = 0;
     }
     count += 1;
 
     drawGround();
     drawWater();
+}
+
+/**
+ * Resets all rockets
+ */
+function resetAllRockets() {
+    for (let i = 0; i < rockets.length; i++) {
+        rockets[i].reset();
+    }
+}
+
+/**
+ * Makes new generation from species groups
+ * @param {Array} speciesGroups Array of species groups
+ */
+function makeNewGenerationFromLast(speciesGroups) {
+    const flatArrayOfRockets = flatten(speciesGroups);
+
+    if (flatArrayOfRockets.length < 2) {
+        throw Error('Not enough rockets survived.');
+    }
+
+    while (rockets.length < NUM_ROCKETS) {
+        const index1 = parseInt(Math.floor(random(0, flatArrayOfRockets.length)));
+        let index2 = parseInt(Math.floor(random(0, flatArrayOfRockets.length)));
+        while (index2 === index1) {
+            index2 = parseInt(Math.floor(random(0, flatArrayOfRockets.length)));
+        }
+        const parentRocket1 = rockets[index1];
+        const parentRocket2 = rockets[index2];
+        rockets.push(parentRocket1.mate(parentRocket2));
+    }
+    speciesGroups = [];
+}
+
+/**
+ * Sorts each species based on their fitness
+ * @param {Array} speciesGroups Species groups
+ */
+function sortSpeciesGroups(speciesGroups) {
+    for (let i = 0; i < speciesGroups.length; i++) {
+        speciesGroups[i].sort((a, b) => b.fitness - a.fitness);
+    }
+}
+
+/**
+ * Kills 50 % of each species group
+ * @param {Array} speciesGroups Species groups
+ */
+function kill50PercentPerSpecies(speciesGroups) {
+    for (let i = 0; i < speciesGroups.length; i++) {
+        const halfOfSpecies = parseInt(Math.floor(speciesGroups[i].length / 2));
+        if (speciesGroups[i].length === 0) {
+            throw Error('Something went wrong. Species group can not be zero.');
+        }
+        for (let j = halfOfSpecies; j < speciesGroups[i].length; j++) {
+            removeRocket(getRocketIndex(speciesGroups[i][j].id));
+        }
+        speciesGroups[i].splice(halfOfSpecies);
+    }
+}
+
+/**
+ * Finds the rocket based on id, if not found return null
+ * @param {string} uuidv4 The id of the rocket
+ */
+function getRocket(uuidv4) {
+    for (let i = 0; i < rockets.length; i++) {
+        if (rockets[i].id === uuidv4) {
+            return rockets[i];
+        }
+    }
+    return null;
+}
+
+/**
+ * Finds the rocket index based on id, if not found return null
+ * @param {string} uuidv4 The id of the rocket
+ */
+function getRocketIndex(uuidv4) {
+    for (let i = 0; i < rockets.length; i++) {
+        if (rockets[i].id === uuidv4) {
+            return i;
+        }
+    }
+    return null;
+}
+
+
+/**
+ * Get species groups
+ * @param {Array} rockets Array of rockets
+ */
+function getSpeciesGroups(rockets) {
+    const speciesGroups = [];
+
+    const alreadyBelongToASpecies = {};
+    for (let i = 0; i < rockets.length; i++) {
+        if (alreadyBelongToASpecies[i] === undefined) {
+            const species = [rockets[i]]
+            alreadyBelongToASpecies[i] = true;
+            for (let j = 0; j < rockets.length; j++) {
+                const speciesDiff = rockets[i].dist(rockets[j]);
+                if (i !== j && speciesDiff < 0.3 && alreadyBelongToASpecies[j] === undefined) {
+                    species.push(rockets[j])
+                    alreadyBelongToASpecies[j] = true;
+                }
+            }
+            speciesGroups.push(species);
+        }
+
+    }
+    return speciesGroups;
 }
 
 /**
@@ -106,8 +205,18 @@ function initRockets() {
 }
 
 function randomX() {
-    const leftRandomPos = random(0, 350);
-    const rightRandomPos = random(450, 800);
-    if (random() > 0.5) return rightRandomPos;
-    else return leftRandomPos;
+    // const leftRandomPos = random(0, 350);
+    // const rightRandomPos = random(450, 800);
+    // if (random() > 0.5) return rightRandomPos;
+    // else return leftRandomPos;
+    return random(0, width);
+}
+
+/**
+ * Removes a rocket from the game
+ * @param {number} i The index of the rocket
+ */
+function removeRocket(i) {
+    rockets[i].delete();
+    rockets.splice(i, 1);
 }

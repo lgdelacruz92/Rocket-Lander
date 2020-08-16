@@ -4,10 +4,7 @@ class Rocket {
         this.w = w;
         this.h = h;
         if (brain) {
-            ;
             this.brain = brain;
-        } else {
-            this.brain = new neataptic.architect.Perceptron(6, 7, 3);
         }
 
         this.body.collisionFilter.group = -1;
@@ -16,8 +13,33 @@ class Rocket {
         } else {
             this.fitness = 0;
         }
-        this.dead = false;
         this.color = createVector(random(0, 255), random(0, 255), random(0, 255));
+        this.id = uuidv4();
+    }
+
+    /**
+     * Function to mate with other rockets.
+     * @param {Rocket} otherRocket Partner rocket
+     */
+    mate(otherRocket) {
+        const childBrain = this.brain.crossOver(otherRocket.brain);
+        const childRocket = new Rocket(randomX(), random(0, 300), this.w, this.h, childBrain, 0);
+        childRocket.mutate();
+        if (this.fitness > otherRocket.fitness) {
+            childRocket.color = this.color;
+        } else {
+            childRocket.color = otherRocket.color;
+        }
+        Matter.World.add(engine.world, childRocket.body);
+        return childRocket;
+    }
+
+    /**
+     * Checks the species distance between itself and other rocket
+     * @param {Rocket} otherRocket Other rocket
+     */
+    dist(otherRocket) {
+        return this.brain.dist(otherRocket.brain);
     }
 
     /**
@@ -30,6 +52,13 @@ class Rocket {
             this.brain.mutate(false, true);
         }
     }
+
+    /**
+     * Deletes rocket from the game engine
+     */
+    delete() {
+        Matter.World.remove(engine.world, this.body);
+    }
     
     /**
      * Resets the rocket
@@ -39,18 +68,6 @@ class Rocket {
         Matter.Body.setVelocity(this.body, { x: 0, y: 0});
         Matter.Body.setAngle(this.body, 0);
         this.dead = false;
-    }
-
-    setColor(color) {
-        this.color = color;
-    }
-
-    getFitness() {
-        this.fitness;
-    }
-
-    setFitness(fitness) {
-        this.fitness = fitness;
     }
 
     up(scale) {
@@ -87,47 +104,32 @@ class Rocket {
     }
 
     update() {
-
         if (mag(this.body.velocity) > 3) {
             this.up(1);
         }
-        if (!this.dead && this.body.position.y < 645) {
-            Matter.Body.setAngle(this.body, 0);
-            if (this._outOfBounds()) {
-                this.dead = true;
-            }
-            this.calculateFitness();
-            const brainInput = this.getBrainInputs();
-            const output = this.brain.activate(brainInput);
-            for (let i = 0; i < this.brain.nodes.length; i++) {
-                if (isNaN(this.brain.nodes[i].value)) {
-                    console.log('The brain hit nan.', this.brain);
-                }
-            }
-            this.lastOutput = output;
-            this.up(map(output[0], -2, 2, 0, 1));
-            this.left(map(output[1], -2, 2, 0, 1));
-            this.right(map(output[2], -2, 2, 0, 1));
-        }
-        if (this.dead) {
-            this.fitness = 0;
-        }
+        Matter.Body.setAngle(this.body, 0);
 
-        if (this._crashed()) {
-            this.dead = true;
+        this.calculateFitness();
+        const brainInput = this.getBrainInputs();
+        const output = this.brain.activate(brainInput);
+        for (let i = 0; i < this.brain.nodes.length; i++) {
+            if (isNaN(this.brain.nodes[i].value)) {
+                console.log('The brain hit nan.', this.brain);
+            }
         }
-    }
-
-    _crashed() {
-        return (this.body.position.y > 640 && mag(this.body.velocity) > 5);
+        this.lastOutput = output;
+        this.up(map(output[0], -2, 2, 0, 1));
+        this.left(map(output[1], -2, 2, 0, 1));
+        this.right(map(output[2], -2, 2, 0, 1));
     }
 
     calculateFitness() {
         const distToTarget = dist(this.body.position, { x: 400, y: 650 });
-        this.fitness += createVector(width,height).mag()/distToTarget;
+        const val = distToTarget / createVector(width, height).mag();
+        this.fitness = 1/val;
     }
 
-    _outOfBounds() {
+    outOfBounds() {
         return this.body.position.x < 0 
         || this.body.position.x > width
         || this.body.position.y < 0

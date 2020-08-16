@@ -21,7 +21,7 @@ class Neat {
         if (!outputNumber) throw Error('Value required: outputNumber.');
         this.inputNumber = inputNumber;
         this.outputNumber = outputNumber;
-        
+
         this.inputNodeIds = {};
         this.outputNodeIds = {};
         this.nodeCurrentNumber = 0;
@@ -64,7 +64,7 @@ class Neat {
         for (let i = 0; i < keys.length; i++) {
             if (connectionsMap[keys[i]].length === 2) {
                 avgWeightDiff += (connectionsMap[keys[i]][0].weight - connectionsMap[keys[i]][1].weight) / 2;
-                countOfMatching +=1;
+                countOfMatching += 1;
             }
         }
         if (countOfMatching === 0) {
@@ -90,10 +90,13 @@ class Neat {
         for (let i = 0; i < connectionsSmaller.length; i++) {
             const connectionIn = connectionsSmaller[i].in;
             const connectionPair = connectionMap[connectionIn];
+            if (connectionPair === undefined) {
+                console.log(connectionIn, connectionMap);
+            }
             if (connectionPair.length !== 1 && connectionPair.length !== 2) {
                 throw Error('Something went wrong. Connection pairs should not be more than two.');
             }
-            
+
             if (connectionPair.length === 1) {
                 disjointCount += 1;
             }
@@ -106,7 +109,7 @@ class Neat {
      * @param {Object} connectionsMap The connections map
      */
     _countExcess(connectionsMap) {
-        
+
         // Iterate backwards on the keys
         // Count amount of no pairs
         let excess = 0;
@@ -144,11 +147,30 @@ class Neat {
             }
         }
 
+        // Put connections that have been missed
+        for (let i = 0; i < connections2.length; i++) {
+            if (connectionsMap[connections2[i].in] === undefined) {
+                connectionsMap[connections2[i].in] = [connections2[i]];
+            }
+        }
+
         // Sanity validation of the map
         const keys = Object.keys(connectionsMap);
         for (let i = 0; i < keys.length; i++) {
             if (connectionsMap[keys[i]].length > 2) {
                 throw Error('Something went wrong. You shouldnt have more than 2 in a pair.');
+            }
+        }
+
+        // Make sure all identification numbers are placed in the map
+        for (let i = 0; i < connections1.length; i++) {
+            if (connectionsMap[connections1[i].in] === undefined) {
+                throw Error('This should not happen. Missing connection in the map.');
+            }
+        }
+        for (let i = 0; i < connections2.length; i++) {
+            if (connectionsMap[connections2[i].in] === undefined) {
+                throw Error('This should not happen. Missing connection in the map.');
             }
         }
 
@@ -219,7 +241,7 @@ class Neat {
     /**
      * Returns a copy of itself
      * @return {Neat} new Neat copy
-     */ 
+     */
     copy() {
         const newNeat = new Neat(this.inputNumber, this.outputNumber);
         newNeat.inputNodeIds = JSON.parse(JSON.stringify(this.inputNodeIds));
@@ -305,7 +327,7 @@ class Neat {
             const visited = {}
             let currentNode = this.nodes[i];
             let connections = this._findInConnections(currentNode.id);
-            
+
             if (connections.length === 0) {
                 return false;
             }
@@ -353,10 +375,10 @@ class Neat {
         let node1 = this.nodes[Math.min(index1, index2)];
         let node2 = this.nodes[Math.max(index1, index2)];
 
-        while ((this.inputNodeIds[node1.id] && this.inputNodeIds[node2.id]) 
+        while ((this.inputNodeIds[node1.id] && this.inputNodeIds[node2.id])
             || node1.id === node2.id
             || (this.outputNodeIds[node1.id] && this.outputNodeIds[node2.id])
-            ) {
+        ) {
             index1 = parseInt(random(0, this.nodes.length));
             index2 = parseInt(random(0, this.nodes.length));
             node1 = this.nodes[Math.min(index1, index2)];
@@ -371,7 +393,7 @@ class Neat {
         else if (this.outputNodeIds[node2.id] && this._isHiddenLayerNode(node1)) {
             newConnection.inNode = node1;
             newConnection.outNode = node2;
-        } 
+        }
         else if (this._isHiddenLayerNode(node2) && this._isHiddenLayerNode(node1)) {
             if (node1.id < node2.id) {
                 newConnection.inNode = node1;
@@ -469,7 +491,7 @@ class Neat {
         const inConnectionsMap = {};
 
         // Activate
-        while(!this._allStable(nodeStability)) {
+        while (!this._allStable(nodeStability)) {
             for (let i = 0; i < this.nodes.length; i++) {
                 if (this.inputNodeIds[this.nodes[i].id] === undefined && !nodeStability[i]) {
                     // Find in connections
@@ -485,13 +507,13 @@ class Neat {
                     });
 
                     if (this._isSetOfNodesStable(inNodeSet, nodeStability)) {
-                        connections.forEach(cnn => { 
-                            cnn.activate(); 
+                        connections.forEach(cnn => {
+                            cnn.activate();
                         });
                         nodeStability[i] = true;
                     } else if (inNodeSet.length === 0) {
-                        connections.forEach(cnn => { 
-                            cnn.activate(); 
+                        connections.forEach(cnn => {
+                            cnn.activate();
                         });
                         nodeStability[i] = true;
                     }
@@ -566,7 +588,7 @@ class Neat {
      * @param {number} x The number to convert to sigmoid
      */
     _sigmoid(x) {
-        return (Math.pow(2.72, x))/(Math.pow(2.72, x) + 1);
+        return (Math.pow(2.72, x)) / (Math.pow(2.72, x) + 1);
     }
 
     /**
@@ -579,7 +601,7 @@ class Neat {
 
         const connectionPairs = this._getConnectionPairs(otherNeat);
         const innovationNumbers = Object.keys(connectionPairs);
-        
+
         // Make new child
         const newNeatChild = new Neat(this.inputNumber, this.outputNumber);
         this._produceChildConnections(newNeatChild, innovationNumbers, connectionPairs);
@@ -588,7 +610,7 @@ class Neat {
         this._updateConnectionNumber();
         newNeatChild._updateNodeNumber();
         newNeatChild._updateConnectionNumber();
-        
+
         return newNeatChild;
     }
 
@@ -599,7 +621,7 @@ class Neat {
     _getConnectionPairs(otherNeat) {
         const connectionPairs = {};
         this.connections.forEach(cnn => { this._fillConnectionPairs(cnn, connectionPairs) });
-        otherNeat.connections.forEach(cnn => { this._fillConnectionPairs(cnn, connectionPairs)});
+        otherNeat.connections.forEach(cnn => { this._fillConnectionPairs(cnn, connectionPairs) });
         return connectionPairs;
     }
 
