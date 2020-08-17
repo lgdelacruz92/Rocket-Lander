@@ -149,6 +149,11 @@ class Rocket {
         return [x, y, angle, vel, targetx, targety];
     }
 
+    _getFitness() {
+        const fitness = parseInt(Math.floor(this.fitness * 100));
+        return fitness / 100;
+    }
+
     draw() {
         push();
         translate(this.body.position.x, this.body.position.y);
@@ -158,6 +163,8 @@ class Rocket {
         ellipse(0, 0, this.w - 16, this.h - 18);
         imageMode(CENTER);
         image(rocketImg, 0, 5   );
+        fill(0);
+        text(`${this._getFitness()}`, 0, 0);
         pop();
     }
 }

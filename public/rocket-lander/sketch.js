@@ -1,8 +1,9 @@
+let backgroundImg;
 let count;
 let engine;
 let rocketImg;
-let backgroundImg;
 let rockets;
+let generation;
 
 // * NUM_ROCKETS has to be a minimum of 100
 const NUM_ROCKETS = 100;
@@ -26,6 +27,7 @@ function setup() {
     Matter.Engine.run(engine);
 
     count = 0;
+    generation = 1;
 }
 
 function draw() {
@@ -49,7 +51,9 @@ function draw() {
         const speciesGroups = getSpeciesGroups(rockets);
         sortSpeciesGroups(speciesGroups);
         killPercentagePerSpecies(speciesGroups, 1 - 0.5);
+        writeRocketAvg();
         makeNewGenerationFromLast(speciesGroups);
+        writeGenerationNumber();
         resetAllRockets();
         count = 0;
     }
@@ -57,6 +61,38 @@ function draw() {
 
     drawGround();
     drawWater();
+}
+
+/**
+ * Writes the rocket avg chart
+ */
+function writeRocketAvg() {
+    myChart.data.datasets[0].data.push({x: generation, y: getAvgFitness() });
+    myChart.update();
+}
+
+/**
+ * Gets the avg fitness
+ */
+function getAvgFitness() {
+    let fitness = 0;
+    for (let i = 0; i < rockets.length; i++) {
+        fitness += rockets[i].fitness;
+    }
+    return fitness / rockets.length;
+}
+
+/**
+ * Writes the generation number
+ */
+function writeGenerationNumber() {
+    const generationText = document.querySelector('.reports .generation .number');
+    if (generationText) {
+        generationText.innerHTML = `${generation}`;
+        generation += 1;
+    } else {
+        throw Error('Generation text is missing.');
+    }
 }
 
 /**
@@ -167,7 +203,6 @@ function getSpeciesGroups(rockets) {
             }
             speciesGroups.push(species);
         }
-
     }
     return speciesGroups;
 }
