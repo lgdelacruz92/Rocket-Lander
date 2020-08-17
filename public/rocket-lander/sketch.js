@@ -1,12 +1,26 @@
 let backgroundImg;
 let count;
+let decisionsToSkip;
 let engine;
+let neat;
 let rocketImg;
 let rockets;
 let generation;
 
 // * NUM_ROCKETS has to be a minimum of 100
 const NUM_ROCKETS = 100;
+
+// * NEAT config
+const neat_config = {
+    model: [
+        { nodeCount: 6, type: "input" },
+        { nodeCount: 3, type: "output", activationfunc: activation.RELU }
+    ],
+    mutationRate: 0.05,
+    crossoverMethod: crossover.RANDOM,
+    mutationMethod: mutate.RANDOM,
+    populationSize: NUM_ROCKETS
+};
 
 function preload() {
     rocketImg = loadImage('../../assets/rocket.png');
@@ -25,37 +39,48 @@ function setup() {
 
     Matter.World.add(engine.world, ground);
     Matter.Engine.run(engine);
+    neat = new NEAT(neat_config);
 
     count = 0;
     generation = 1;
+    decisionsToSkip = {};
 }
 
 function draw() {
     image(backgroundImg, 0, 0);
 
     for (let i = 0; i < rockets.length; i++) {
-        try {
-            rockets[i].draw();
-            rockets[i].update();
-            if (rockets[i].outOfBounds()) {
-                removeRocket(i);
-            }
-        }
-        catch (err) {
-            console.log('Error in one frocket');
-            removeRocket(i);
-        }
+        const inputs = rockets[i].getBrainInputs();
+        neat.setInputs(inputs, i);
     }
+
+    neat.feedForward();
+    const decisions = neat.getDesicions();
+
+    if (decisions.length !== rockets.length) {
+        throw Error('This should not happen');
+    }
+
+    for (let i = 0; i < decisions.length; i++) {
+        if (rockets[i].outOfBounds()) {
+            rockets[i].dead = true;
+        }
+        rockets[i].update(decisions[i]);
+        rockets[i].draw();
+    }
+
     if (count >= 500) {
         // Speciation
-        const speciesGroups = getSpeciesGroups(rockets);
-        sortSpeciesGroups(speciesGroups);
-        killPercentagePerSpecies(speciesGroups, 1 - 0.5);
+        for (let i = 0; i < rockets.length; i++) {
+            neat.setFitness(rockets[i].fitness, i);
+        }
+        neat.doGen();
+
         writeRocketAvg();
-        makeNewGenerationFromLast(speciesGroups);
         writeGenerationNumber();
         resetAllRockets();
         count = 0;
+        decisionsToSkip = {};
     }
     count += 1;
 
@@ -67,7 +92,7 @@ function draw() {
  * Writes the rocket avg chart
  */
 function writeRocketAvg() {
-    myChart.data.datasets[0].data.push({x: generation, y: getAvgFitness() });
+    myChart.data.datasets[0].data.push({ x: generation, y: getAvgFitness() });
     myChart.update();
 }
 
@@ -105,57 +130,6 @@ function resetAllRockets() {
 }
 
 /**
- * Makes new generation from species groups
- * @param {Array} speciesGroups Array of species groups
- */
-function makeNewGenerationFromLast(speciesGroups) {
-    const flatArrayOfRockets = flatten(speciesGroups);
-
-    if (flatArrayOfRockets.length < 2) {
-        throw Error('Not enough rockets survived.');
-    }
-
-    while (rockets.length < NUM_ROCKETS) {
-        const index1 = parseInt(Math.floor(random(0, flatArrayOfRockets.length)));
-        let index2 = parseInt(Math.floor(random(0, flatArrayOfRockets.length)));
-        while (index2 === index1) {
-            index2 = parseInt(Math.floor(random(0, flatArrayOfRockets.length)));
-        }
-        const parentRocket1 = rockets[index1];
-        const parentRocket2 = rockets[index2];
-        rockets.push(parentRocket1.mate(parentRocket2));
-    }
-    speciesGroups = [];
-}
-
-/**
- * Sorts each species based on their fitness
- * @param {Array} speciesGroups Species groups
- */
-function sortSpeciesGroups(speciesGroups) {
-    for (let i = 0; i < speciesGroups.length; i++) {
-        speciesGroups[i].sort((a, b) => b.fitness - a.fitness);
-    }
-}
-
-/**
- * Kills 50 % of each species group
- * @param {Array} speciesGroups Species groups
- */
-function killPercentagePerSpecies(speciesGroups, percentage) {
-    for (let i = 0; i < speciesGroups.length; i++) {
-        const percentageOfSpecies = parseInt(Math.floor(speciesGroups[i].length * percentage));
-        if (speciesGroups[i].length === 0) {
-            throw Error('Something went wrong. Species group can not be zero.');
-        }
-        for (let j = percentageOfSpecies; j < speciesGroups[i].length; j++) {
-            removeRocket(getRocketIndex(speciesGroups[i][j].id));
-        }
-        speciesGroups[i].splice(percentageOfSpecies);
-    }
-}
-
-/**
  * Finds the rocket based on id, if not found return null
  * @param {string} uuidv4 The id of the rocket
  */
@@ -181,32 +155,6 @@ function getRocketIndex(uuidv4) {
     return null;
 }
 
-
-/**
- * Get species groups
- * @param {Array} rockets Array of rockets
- */
-function getSpeciesGroups(rockets) {
-    const speciesGroups = [];
-
-    const alreadyBelongToASpecies = {};
-    for (let i = 0; i < rockets.length; i++) {
-        if (alreadyBelongToASpecies[i] === undefined) {
-            const species = [rockets[i]]
-            alreadyBelongToASpecies[i] = true;
-            for (let j = 0; j < rockets.length; j++) {
-                const speciesDiff = rockets[i].dist(rockets[j]);
-                if (i !== j && speciesDiff < 0.3 && alreadyBelongToASpecies[j] === undefined) {
-                    species.push(rockets[j])
-                    alreadyBelongToASpecies[j] = true;
-                }
-            }
-            speciesGroups.push(species);
-        }
-    }
-    return speciesGroups;
-}
-
 /**
  * Draws the Ground
  */
@@ -225,7 +173,7 @@ function drawWater() {
     stroke(52, 158, 200, 50);
     strokeWeight(5);
     for (let i = 0; i < width; i++) {
-        const yLoc = 20 * sin(i/200 + map(count, 0, 500, 0, 10)) + 750;
+        const yLoc = 20 * sin(i / 200 + map(count, 0, 500, 0, 10)) + 750;
         point(i, yLoc);
         line(i, height, i, yLoc);
     }
@@ -238,8 +186,7 @@ function initRockets() {
     rockets = [];
 
     for (let i = 0; i < NUM_ROCKETS; i++) {
-        const neat = new Neat(6, 3);
-        const newRocket = new Rocket(randomX(), random(0, 300), 30, 100, neat);
+        const newRocket = new Rocket(randomX(), random(0, 300), 30, 100);
         rockets.push(newRocket);
     }
     Matter.World.add(engine.world, [...rockets.map(b => b.body)]);

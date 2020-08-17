@@ -1,56 +1,13 @@
 class Rocket {
-    constructor(x, y, w, h, brain, fitness) {
-        this.body = Matter.Bodies.rectangle(x, y, w, h);
-        this.w = w;
-        this.h = h;
-        if (brain) {
-            this.brain = brain;
-        }
+    constructor(x, y) {
+        this.body = Matter.Bodies.rectangle(x, y, 30, 100);
+        this.w = 30;
+        this.h = 100;
 
         this.body.collisionFilter.group = -1;
-        if (fitness) {
-            this.fitness = fitness;
-        } else {
-            this.fitness = 0;
-        }
         this.color = createVector(random(0, 255), random(0, 255), random(0, 255));
         this.id = uuidv4();
-    }
-
-    /**
-     * Function to mate with other rockets.
-     * @param {Rocket} otherRocket Partner rocket
-     */
-    mate(otherRocket) {
-        const childBrain = this.brain.crossOver(otherRocket.brain);
-        const childRocket = new Rocket(randomX(), random(0, 300), this.w, this.h, childBrain, 0);
-        childRocket.mutate();
-        if (this.fitness > otherRocket.fitness) {
-            childRocket.color = this.color;
-        } else {
-            childRocket.color = otherRocket.color;
-        }
-        Matter.World.add(engine.world, childRocket.body);
-        return childRocket;
-    }
-
-    /**
-     * Checks the species distance between itself and other rocket
-     * @param {Rocket} otherRocket Other rocket
-     */
-    dist(otherRocket) {
-        return this.brain.dist(otherRocket.brain);
-    }
-
-    /**
-     * Mutates the brain
-     */
-    mutate() {
-        if (Math.random() > 0.5) {
-            this.brain.mutate(true);
-        } else {
-            this.brain.mutate(false, true);
-        }
+        this.dead = false;
     }
 
     /**
@@ -70,9 +27,9 @@ class Rocket {
         this.dead = false;
     }
 
-    up(scale) {
+    up() {
         const verticalVector = createVector(0, -1);
-        verticalVector.setMag(0.005 * scale);
+        verticalVector.setMag(0.005);
         Matter.Body.applyForce(this.body, this.body.position, verticalVector);
 
         if (mag(this.body.velocity) > 1) {
@@ -81,9 +38,9 @@ class Rocket {
         }
     }
 
-    left(scale) {
+    left() {
         const forceVec = createVector(-1, 0);
-        forceVec.setMag(0.005 * scale);
+        forceVec.setMag(0.005);
         Matter.Body.applyForce(this.body, this.body.position, forceVec);
 
         if (mag(this.body.velocity) > 1) {
@@ -92,9 +49,9 @@ class Rocket {
         }
     }
 
-    right(scale) {
+    right() {
         const forceVec = createVector(1, 0);
-        forceVec.setMag(0.005 * scale);
+        forceVec.setMag(0.005);
         Matter.Body.applyForce(this.body, this.body.position, forceVec);
 
         if (mag(this.body.velocity) > 1) {
@@ -103,30 +60,33 @@ class Rocket {
         }
     }
 
-    update() {
+    update(decision) {
         if (mag(this.body.velocity) > 3) {
             this.up(1);
         }
         Matter.Body.setAngle(this.body, 0);
 
         this.calculateFitness();
-        const brainInput = this.getBrainInputs();
-        const output = this.brain.activate(brainInput);
-        for (let i = 0; i < this.brain.nodes.length; i++) {
-            if (isNaN(this.brain.nodes[i].value)) {
-                console.log('The brain hit nan.', this.brain);
-            }
+
+        if (decision === 0) {
+            this.up();
+        } else if (decision === 1) {
+            this.left();
+        } else if (decision === 2) {
+            this.right();
+        } else {
+            throw Error(`${decision} is not a proper decision from Neat.`)
         }
-        this.lastOutput = output;
-        this.up(map(output[0], -2, 2, 0, 1));
-        this.left(map(output[1], -2, 2, 0, 1));
-        this.right(map(output[2], -2, 2, 0, 1));
     }
 
     calculateFitness() {
-        const distToTarget = dist(this.body.position, { x: 400, y: 650 });
-        const val = distToTarget / createVector(width, height).mag();
-        this.fitness = 1/val;
+        if (!this.dead) {
+            const distToTarget = dist(this.body.position, { x: 400, y: 650 });
+            const val = distToTarget / createVector(width, height).mag();
+            this.fitness = 1/val;
+        } else {
+            this.fitness = 0;
+        }
     }
 
     outOfBounds() {
@@ -164,7 +124,6 @@ class Rocket {
         imageMode(CENTER);
         image(rocketImg, 0, 5   );
         fill(0);
-        text(`${this._getFitness()}`, 0, 0);
         pop();
     }
 }
